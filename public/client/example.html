@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta CAPI Tracker v2.1 - Advanced Matching</title>
+    <meta property="profile:email" content="og-test@example.com">
+    <meta property="profile:first_name" content="OpenGraph">
+    <meta property="profile:last_name" content="User">
+    <script type="application/ld+json">
+    { "@type": "Person", "email": "jsonld@example.com", "givenName": "Schema", "familyName": "Org" }
+    </script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:system-ui,sans-serif;background:#f0f2f5;color:#1c1e21;padding:1.5rem}
+        .container{max-width:1000px;margin:0 auto}
+        h1{font-size:1.4rem;margin-bottom:.3rem}
+        h2{font-size:1.05rem;margin:1rem 0 .4rem;color:#1877f2}
+        .card{background:#fff;border-radius:8px;padding:1.2rem;margin-bottom:.8rem;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+        pre{background:#1e1e2e;color:#cdd6f4;padding:.9rem;border-radius:6px;overflow-x:auto;font-size:.8rem;line-height:1.45}
+        .btn{padding:.35rem .7rem;border:none;border-radius:6px;cursor:pointer;font-size:.83rem;margin:3px;color:#fff}
+        .btn-blue{background:#1877f2}.btn-green{background:#42b72a}.btn-orange{background:#f5793a}
+        .btn-purple{background:#833ab4}.btn-red{background:#e74c3c}
+        .btn:hover{opacity:.85}
+        #log{background:#1e1e2e;color:#a6adc8;padding:.7rem;border-radius:6px;min-height:100px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:.75rem}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+        @media(max-width:640px){.grid{grid-template-columns:1fr}}
+        .note{background:#e7f5ff;padding:.5rem;border-radius:4px;font-size:.8rem;border-left:3px solid #1877f2;margin-top:.4rem}
+        .form-demo{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+        .form-demo input,.form-demo select{padding:.35rem .5rem;border:1px solid #ddd;border-radius:4px;font-size:.83rem}
+        .form-demo label{font-size:.78rem;color:#65676b}
+        .meter{height:8px;background:#e4e6eb;border-radius:4px;overflow:hidden;margin:.3rem 0}
+        .meter-fill{height:100%;border-radius:4px;transition:width .5s}
+        .score-display{display:flex;align-items:center;gap:.5rem;font-size:.9rem;font-weight:600}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Meta CAPI Tracker v2.1</h1>
+    <p style="color:#65676b;font-size:.88rem;margin-bottom:1rem;">Advanced Matching · Cookie Keeper · Ad Block Recovery · Multi-Domain</p>
+
+    <!-- Advanced Matching Init -->
+    <div class="card">
+        <h2>Advanced Matching Setup</h2>
+        <pre><code>MetaTracker.init({
+  endpoint: 'https://your-server.com/api/v1/track',
+  apiKey:   'your-api-key',
+  pixelId:  '123456789012345',
+  advancedMatching: {
+    enabled: true,
+    autoCaptureForms: true,   // Watch form inputs for PII
+    captureUrlParams: true,   // Extract email/phone from URL
+    captureDataLayer: true,   // Read GTM dataLayer
+    captureMetaTags: true,    // Read og: and JSON-LD tags
+    autoIdentifyOnSubmit: true,
+    formFieldMap: {           // Custom CSS selector → param
+      '#custom-whatsapp': 'ph',
+      '.loyalty-id': 'external_id',
+    },
+    userDataKey: 'userData',  // Read from window.userData
+  },
+  cookieKeeper:    { enabled: true },
+  adBlockRecovery: { enabled: true },
+});</code></pre>
+    </div>
+
+    <!-- Match Quality Score -->
+    <div class="card">
+        <h2>Match Quality Score</h2>
+        <div class="score-display">
+            <span id="score-value">--</span>/100
+            <span id="score-tier" style="font-size:.75rem;padding:2px 8px;border-radius:12px;background:#e4e6eb">--</span>
+        </div>
+        <div class="meter"><div id="score-meter" class="meter-fill" style="width:0;background:#ccc"></div></div>
+        <div id="score-fields" style="font-size:.78rem;color:#65676b;margin-top:.3rem"></div>
+        <button class="btn btn-blue" onclick="updateMatchScore()" style="margin-top:.5rem">Refresh Score</button>
+        <div class="note">
+            Score reflects how well Meta can match events to Facebook users.
+            Auto-captured data from forms, URLs, and meta tags improves the score automatically.
+        </div>
+    </div>
+
+    <!-- Form Auto-Capture Demo -->
+    <div class="card">
+        <h2>Form Auto-Capture Demo</h2>
+        <p style="font-size:.82rem;color:#65676b;margin-bottom:.5rem">
+            Type in the fields below — Advanced Matching detects and captures PII automatically.
+        </p>
+        <form id="demo-form" onsubmit="event.preventDefault(); handleFormSubmit()">
+            <div class="form-demo">
+                <div><label>Email</label><input type="email" name="email" placeholder="user@example.com" autocomplete="email"></div>
+                <div><label>Phone</label><input type="tel" name="phone" placeholder="+62 812 3456 789" autocomplete="tel"></div>
+                <div><label>First Name</label><input name="first_name" placeholder="John" autocomplete="given-name"></div>
+                <div><label>Last Name</label><input name="last_name" placeholder="Doe" autocomplete="family-name"></div>
+                <div><label>City</label><input name="city" placeholder="Jakarta" autocomplete="address-level2"></div>
+                <div><label>Country</label>
+                    <select name="country" autocomplete="country">
+                        <option value="">--</option>
+                        <option value="id">Indonesia</option>
+                        <option value="us">United States</option>
+                        <option value="gb">United Kingdom</option>
+                        <option value="sg">Singapore</option>
+                        <option value="kh">Cambodia</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-green" style="margin-top:.5rem">Submit (auto-identifies)</button>
+        </form>
+    </div>
+
+    <!-- Data Sources -->
+    <div class="card">
+        <h2>Data Source Priority</h2>
+        <pre><code>// Priority order (highest wins when merging):
+// 1. Explicit userData → track('Purchase', {}, { em: 'a@b.com' })
+// 2. identify()        → MetaTracker.identify({ email: 'a@b.com' })
+// 3. Form submit       → auto-captured on form submit
+// 4. Form pre-fill     → scanned from pre-filled values
+// 5. URL params        → ?email=a@b.com&phone=123
+// 6. DataLayer / GTM   → dataLayer.push({ user: { email: 'a@b.com' } })
+// 7. Meta tags         → &lt;meta property="profile:email" content="a@b.com"&gt;
+
+// All PII is normalized per Meta's requirements before hashing:
+// • Email: trim + lowercase
+// • Phone: digits only (no +, dashes, spaces), with country code
+// • Name: lowercase, remove titles (Dr., Mr.), remove accents
+// • Gender: 'm' or 'f'
+// • DOB: YYYYMMDD
+// • City: lowercase, alpha only
+// • State: 2-letter code
+// • Zip: no spaces, US=first 5 digits
+// • Country: 2-letter ISO code</code></pre>
+    </div>
+
+    <!-- Convenience Code Examples -->
+    <div class="card">
+        <h2>Usage Examples</h2>
+        <pre><code>// Events auto-include all captured data — no manual userData needed
+MetaTracker.trackPurchase({ value: 99.99, currency: 'USD', order_id: 'ORD-1' });
+// → user_data auto-filled from form + URL + dataLayer + stored identity
+
+// Explicit userData always wins over auto-captured
+MetaTracker.trackLead({ value: 50 }, { em: 'override@example.com' });
+
+// Check match quality before sending
+const quality = await MetaTracker.getMatchQuality();
+console.log(quality); // { score: 75, fields: ['em','ph','fn','fbp','fbc',...] }
+
+// Add data from custom integration
+MetaTracker.addUserData({ em: 'crm@example.com', external_id: 'CRM-123' });
+
+// Deduplication: pass same event_id to fbq()
+const eid = await MetaTracker.trackPurchase({ value: 99.99, currency: 'USD' });
+fbq('track', 'Purchase', { value: 99.99, currency: 'USD' }, { eventID: eid });</code></pre>
+    </div>
+
+    <!-- Live Test Panel -->
+    <div class="card">
+        <h2>Live Test Panel</h2>
+        <div class="grid">
+            <div>
+                <strong style="font-size:.83rem">Track Events</strong><br>
+                <button class="btn btn-blue" onclick="testPageView()">PageView</button>
+                <button class="btn btn-green" onclick="testPurchase()">Purchase</button>
+                <button class="btn btn-orange" onclick="testLead()">Lead</button>
+                <button class="btn btn-purple" onclick="testCustom()">Custom</button>
+            </div>
+            <div>
+                <strong style="font-size:.83rem">Identity</strong><br>
+                <button class="btn btn-blue" onclick="testIdentify()">Identify</button>
+                <button class="btn btn-red" onclick="testClear()">Clear Identity</button>
+                <button class="btn btn-purple" onclick="showDebug()">Debug Info</button>
+                <button class="btn btn-orange" onclick="showAMDiag()">AM Diagnostics</button>
+            </div>
+        </div>
+        <h3 style="font-size:.85rem;margin:.6rem 0 .3rem">Event Log</h3>
+        <div id="log"></div>
+    </div>
+
+    <!-- Server-Side Normalization -->
+    <div class="card">
+        <h2>Server-Side: Advanced Matching Flow</h2>
+        <pre><code>// NormalizeUserDataAction applies Meta-specific rules per field:
+$normalizer = new NormalizeUserDataAction();
+$metaUserData = $normalizer([
+    'email' => '  John@Gmail.COM  ',      // → trim, lowercase → hash
+    'phone' => '+62 (812) 345-6789',       // → strip to 628123456789 → hash
+    'first_name' => 'Dr. José García',     // → remove title, transliterate → "jose garcia" → hash
+    'gender' => 'Male',                     // → 'm' → hash
+    'date_of_birth' => '03/15/1990',       // → '19900315' → hash
+    'city' => 'São Paulo',                 // → transliterate → 'sao paulo' → hash
+    'state' => 'California',               // → 'ca' → hash
+    'zip' => '90210-1234',                 // → '90210' → hash
+    'country' => 'United States',          // → 'us' → hash
+]);
+
+// MetaUserData::enrichFromRequest() auto-fills IP + UA from request
+$metaUserData = $metaUserData->enrichFromRequest($request);
+
+// MatchQualityScorer for monitoring
+$scorer = new MatchQualityScorer();
+$result = $scorer->score($metaUserData);
+// → { score: 82, tier: 'excellent', fields_present: [...], recommendations: [...] }
+
+// Multi-value support (multiple emails/phones per event)
+MetaUserData::fromRaw([
+    'em' => 'primary@example.com',
+    'em_multi' => ['secondary@example.com', 'work@company.com'],
+    'ph' => '628123456789',
+    'ph_multi' => ['14155551234'],
+]);
+// → Meta receives: { em: [hash1, hash2, hash3], ph: [hash4, hash5] }</code></pre>
+    </div>
+
+    <!-- Match Quality API -->
+    <div class="card">
+        <h2>Server: Match Quality API</h2>
+        <pre><code>// POST /api/v1/track/match-quality
+// Test your user data quality before sending events
+
+curl -X POST https://your-server.com/api/v1/track/match-quality \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_data": {
+      "em": "user@example.com",
+      "ph": "+1 (415) 555-1234",
+      "fn": "John",
+      "ln": "Doe",
+      "country": "us"
+    }
+  }'
+
+// Response:
+{
+  "success": true,
+  "match_quality": {
+    "score": 72,
+    "tier": "great",
+    "fields_present": ["em", "ph", "fn", "ln", "country", "client_ip_address", "client_user_agent"],
+    "fields_missing": ["ge", "db", "ct", "st", "zp", "external_id", "fbc", "fbp", ...],
+    "recommendations": ["Enable Cookie Keeper to capture _fbp and _fbc cookies."]
+  }
+}</code></pre>
+    </div>
+</div>
+
+<!-- GTM dataLayer simulation -->
+<script>
+window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ user: { email: 'datalayer@example.com', first_name: 'DataLayer' } });
+</script>
+
+<script src="./meta-tracker.js"></script>
+<script>
+MetaTracker.init({
+  endpoint: 'https://your-server.com/api/v1/track',
+  apiKey: 'demo-api-key',
+  pixelId: '111111111111111',
+  autoPageView: false,
+  debug: true,
+  advancedMatching: {
+    enabled: true,
+    autoCaptureForms: true,
+    captureUrlParams: true,
+    captureDataLayer: true,
+    captureMetaTags: true,
+    autoIdentifyOnSubmit: true,
+  },
+  cookieKeeper: { enabled: true },
+  adBlockRecovery: { enabled: true, proxyPath: '/collect' },
+});
+
+const logEl = document.getElementById('log');
+function addLog(msg, type) {
+  const t = new Date().toLocaleTimeString();
+  const color = type === 'ok' ? '#a6e3a1' : type === 'warn' ? '#f9e2af' : '#89b4fa';
+  logEl.innerHTML += `<div style="color:${color};padding:1px 0">[${t}] ${msg}</div>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function updateMatchScore() {
+  const q = await MetaTracker.getMatchQuality();
+  document.getElementById('score-value').textContent = q.score;
+  const tier = document.getElementById('score-tier');
+  tier.textContent = q.score >= 81 ? 'Excellent' : q.score >= 61 ? 'Great' : q.score >= 41 ? 'Good' : q.score >= 21 ? 'Fair' : 'Poor';
+  const colors = { Excellent:'#2b8a3e', Great:'#1877f2', Good:'#e67700', Fair:'#f5793a', Poor:'#c92a2a' };
+  tier.style.background = (colors[tier.textContent] || '#999') + '22';
+  tier.style.color = colors[tier.textContent] || '#999';
+  document.getElementById('score-meter').style.width = q.score + '%';
+  document.getElementById('score-meter').style.background = colors[tier.textContent] || '#999';
+  document.getElementById('score-fields').textContent = 'Fields: ' + q.fields.join(', ');
+  addLog(`Match quality: ${q.score}/100 (${tier.textContent}) — ${q.fields.length} fields`, 'ok');
+}
+
+async function testPageView() {
+  const id = await MetaTracker.trackPageView();
+  addLog(`PageView → ${id}`, 'ok');
+  updateMatchScore();
+}
+async function testPurchase() {
+  const id = await MetaTracker.trackPurchase(
+    { value: 99.99, currency: 'USD', order_id: 'ORD-' + Date.now() },
+    { em: 'buyer@example.com' }
+  );
+  addLog(`Purchase $99.99 → ${id} (explicit em overrides auto-captured)`, 'ok');
+  updateMatchScore();
+}
+async function testLead() {
+  const id = await MetaTracker.trackLead({ value: 50, currency: 'USD' });
+  addLog(`Lead → ${id} (user_data auto-filled from captured sources)`, 'ok');
+  updateMatchScore();
+}
+async function testCustom() {
+  const id = await MetaTracker.track('DepositMade', { value: 500, currency: 'USD' });
+  addLog(`Custom "DepositMade" → ${id}`, 'ok');
+}
+async function testIdentify() {
+  await MetaTracker.identify({ email: 'persistent@example.com', phone: '+628123456789', first_name: 'Willy' });
+  addLog('Identity stored: email + phone + first_name', 'ok');
+  updateMatchScore();
+}
+function testClear() {
+  MetaTracker.clearIdentity();
+  addLog('Identity cleared', 'warn');
+  updateMatchScore();
+}
+function handleFormSubmit() {
+  addLog('Form submitted — auto-identify triggered by advancedMatching', 'ok');
+  updateMatchScore();
+}
+function showDebug() {
+  const info = MetaTracker.getDebugInfo();
+  addLog('DEBUG:\n' + JSON.stringify(info, null, 2), 'info');
+}
+function showAMDiag() {
+  const info = MetaTracker.getDebugInfo();
+  addLog('ADVANCED MATCHING:\n' + JSON.stringify(info.advancedMatching, null, 2), 'info');
+}
+
+// Initial score
+setTimeout(updateMatchScore, 500);
+</script>
+</body>
+</html>

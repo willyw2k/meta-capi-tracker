@@ -1,0 +1,73 @@
+/**
+ * Meta CAPI Tracker - GTM Custom HTML Tag
+ * ========================================
+ * Use this as a Custom HTML tag in Google Tag Manager
+ * to integrate with your Meta CAPI tracking server.
+ *
+ * Setup:
+ * 1. Create a Custom HTML tag in GTM
+ * 2. Paste this code
+ * 3. Set trigger to "All Pages" for initialization
+ * 4. Create additional tags per event with appropriate triggers
+ */
+
+<!-- Tag 1: Initialization (trigger: All Pages) -->
+<script src="https://your-server.com/api/v1/track.js"></script>
+<script>
+  MetaTracker.init({
+    endpoint: 'https://your-server.com/api/v1/track',
+    apiKey:   '{{Constant - Tracking API Key}}',  // GTM Variable
+    pixelId:  '{{Constant - Meta Pixel ID}}',     // GTM Variable
+    autoPageView: true,
+    debug: {{Debug Mode}},  // GTM built-in variable
+  });
+</script>
+
+<!-- Tag 2: Purchase Event (trigger: purchase dataLayer event) -->
+<script>
+  (function() {
+    var dl = {{dataLayer}};  // Or use specific GTM variables
+
+    MetaTracker.trackPurchase({
+      value:        {{DLV - transaction_total}},
+      currency:     {{DLV - currency}} || 'USD',
+      content_ids:  {{DLV - product_ids}},
+      content_type: 'product',
+      order_id:     {{DLV - transaction_id}},
+      num_items:    {{DLV - num_items}},
+    }, {
+      em: {{DLV - user_email}},
+      ph: {{DLV - user_phone}},
+      external_id: {{DLV - user_id}},
+    });
+  })();
+</script>
+
+<!-- Tag 3: Lead Event (trigger: form submission) -->
+<script>
+  (function() {
+    MetaTracker.trackLead({
+      value:        {{DLV - lead_value}} || 0,
+      currency:     'USD',
+      content_name: {{DLV - form_name}},
+    }, {
+      em: {{DLV - form_email}},
+      fn: {{DLV - form_first_name}},
+      ln: {{DLV - form_last_name}},
+      ph: {{DLV - form_phone}},
+    });
+  })();
+</script>
+
+<!-- Tag 4: ViewContent (trigger: product page view) -->
+<script>
+  (function() {
+    MetaTracker.trackViewContent({
+      content_name: {{DLV - product_name}},
+      content_ids:  [{{DLV - product_id}}],
+      content_type: 'product',
+      value:        {{DLV - product_price}},
+      currency:     {{DLV - currency}} || 'USD',
+    });
+  })();
+</script>

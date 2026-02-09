@@ -1,0 +1,22 @@
+{
+  "name": "meta-capi-tracker",
+  "version": "3.0.0",
+  "description": "Meta CAPI Tracker — client-side library with Advanced Matching, Cookie Keeper, Ad Blocker Recovery, and Multi-Domain support.",
+  "main": "dist/meta-tracker.js",
+  "module": "dist/meta-tracker.esm.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:esm": "npx esbuild src/index.ts --bundle --format=esm --outfile=dist/meta-tracker.esm.js --sourcemap --target=es2020",
+    "build:iife": "npx esbuild src/index.ts --bundle --format=iife --global-name=MetaTrackerBundle --outfile=dist/meta-tracker.js --sourcemap --target=es2020",
+    "build:min": "npx esbuild src/index.ts --bundle --format=iife --global-name=MetaTrackerBundle --outfile=dist/meta-tracker.min.js --sourcemap --minify --target=es2020",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build": "npm run typecheck && npm run build:iife && npm run build:esm && npm run build:min && npm run build:types"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "license": "MIT"
+}

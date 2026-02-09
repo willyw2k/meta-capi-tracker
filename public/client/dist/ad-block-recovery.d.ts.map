@@ -1,0 +1,1 @@
+{"version":3,"file":"ad-block-recovery.d.ts","sourceRoot":"","sources":["../src/ad-block-recovery.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,EAAE,gBAAgB,EAAE,MAAM,SAAS,CAAC;AAEhD,eAAO,MAAM,eAAe;cACV,OAAO,CAAC,OAAO,CAAC;sBAiBd,MAAM,GAAG,MAAM;+BAON,MAAM,GAAG,MAAM,EAAE;0BAMtB,OAAO,GAAG,gBAAgB,GAAG,OAAO;kBAK5C,MAAM,CAAC,MAAM,EAAE,MAAM,CAAC;CAKrC,CAAC"}
