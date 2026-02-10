@@ -24,7 +24,7 @@ class Settings extends Page implements HasSchemas
 
     protected static ?int $navigationSort = 10;
 
-    protected string $view = 'filament.pages.settings';
+    // protected string $view = 'filament.pages.settings';
 
     public ?array $data = [];
 

@@ -31,9 +31,9 @@ var MetaTrackerBundle = (() => {
   var RETRY_DELAYS = [1e3, 5e3, 15e3];
   var BATCH_INTERVAL = 2e3;
   var config = {
-    endpoint: "",
-    apiKey: "",
-    pixelId: "",
+    endpoint: "https://meta.wakandaslots.com/api/v1/track",
+    apiKey: "77KTyMIdlLOR7HGvyO3Jm02DfFntnka0nYSxWIoiP9YkhVoPLRgy9N6aWZovuyvbm6GdO59tKRHLWAVFq0cWTokaRrwGhnsIZ3le7WD9rIbU5WHbSkhCxjYKc6by23Tk",
+    pixelId: "1515428220005755",
     pixels: [],
     autoPageView: true,
     debug: false,

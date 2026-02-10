@@ -127,8 +127,7 @@ class MatchQualityLogsTable
                         ->distinct()
                         ->pluck('event_name', 'event_name')
                         ->toArray())
-                    ->multiple()
-                    ->preloaded(),
+                    ->multiple(),
 
                 Tables\Filters\TernaryFilter::make('was_enriched')
                     ->label('Enrichment')
