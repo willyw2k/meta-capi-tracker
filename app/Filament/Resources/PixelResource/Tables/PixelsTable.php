@@ -7,6 +7,7 @@ namespace App\Filament\Resources\PixelResource\Tables;
 use App\Models\Pixel;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class PixelsTable
@@ -72,19 +73,17 @@ class PixelsTable
                     ->label('Has Test Code')
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('test_event_code')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make(),
-
-                    Tables\Actions\Action::make('toggle_active')
+            ->recordActions([
+                Actions\ActionGroup::make([
+                    Actions\EditAction::make(),
+                    Actions\Action::make('toggle_active')
                         ->label(fn (Pixel $record): string => $record->is_active ? 'Deactivate' : 'Activate')
                         ->icon(fn (Pixel $record): string => $record->is_active ? 'heroicon-o-pause' : 'heroicon-o-play')
                         ->color(fn (Pixel $record): string => $record->is_active ? 'warning' : 'success')
                         ->requiresConfirmation()
                         ->action(fn (Pixel $record) => $record->update(['is_active' => ! $record->is_active])),
 
-                    Tables\Actions\Action::make('clear_test_code')
+                    Actions\Action::make('clear_test_code')
                         ->label('Clear Test Code')
                         ->icon('heroicon-o-x-mark')
                         ->color('gray')
@@ -92,21 +91,21 @@ class PixelsTable
                         ->requiresConfirmation()
                         ->action(fn (Pixel $record) => $record->update(['test_event_code' => null])),
 
-                    Tables\Actions\DeleteAction::make(),
+                    Actions\DeleteAction::make(),
                 ]),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
 
-                    Tables\Actions\BulkAction::make('activate')
+                    Actions\BulkAction::make('activate')
                         ->label('Activate Selected')
                         ->icon('heroicon-o-play')
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(fn ($records) => $records->each->update(['is_active' => true])),
 
-                    Tables\Actions\BulkAction::make('deactivate')
+                    Actions\BulkAction::make('deactivate')
                         ->label('Deactivate Selected')
                         ->icon('heroicon-o-pause')
                         ->color('warning')
