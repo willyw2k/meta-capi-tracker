@@ -39,8 +39,6 @@ class PixelsTable
                 Tables\Columns\TextColumn::make('domains')
                     ->label('Domains')
                     ->badge()
-                    ->formatStateUsing(fn (array|string $state): string => empty($state) ? 'All' : implode(', ', $state))
-                    ->color(fn (?array $state): string => empty($state) ? 'gray' : 'info')
                     ->limit(30),
 
                 Tables\Columns\TextColumn::make('tracked_events_count')

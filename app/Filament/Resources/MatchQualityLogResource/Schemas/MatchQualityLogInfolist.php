@@ -7,6 +7,7 @@ namespace App\Filament\Resources\MatchQualityLogResource\Schemas;
 use Filament\Infolists;
 use Filament\Schemas;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 
 class MatchQualityLogInfolist
 {
@@ -35,7 +36,7 @@ class MatchQualityLogInfolist
                             ->label('Final Score')
                             ->suffix('/100')
                             ->badge()
-                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                            ->size(TextSize::ExtraSmall)
                             ->color(fn (int $state): string => match (true) {
                                 $state >= 61 => 'success',
                                 $state >= 41 => 'warning',
