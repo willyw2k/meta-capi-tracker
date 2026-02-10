@@ -8,7 +8,6 @@ use App\Models\Pixel;
 use Filament\Actions;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class PixelsTable
