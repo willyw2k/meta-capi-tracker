@@ -114,18 +114,15 @@ class TrackedEventsTable
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(EventStatus::class)
-                    ->multiple()
-                    ->preloaded(),
+                    ->multiple(),
 
                 Tables\Filters\SelectFilter::make('event_name')
                     ->options(MetaEventName::class)
                     ->label('Event Type')
-                    ->multiple()
-                    ->preloaded(),
+                    ->multiple(),
 
                 Tables\Filters\SelectFilter::make('pixel')
                     ->relationship('pixel', 'name')
-                    ->preloaded()
                     ->searchable(),
 
                 Tables\Filters\Filter::make('low_match')

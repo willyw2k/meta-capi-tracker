@@ -228,9 +228,9 @@ declare global {
   // ── State ──────────────────────────────────────────────────────
 
   let config: TrackerConfig = {
-    endpoint: '',
-    apiKey: '',
-    pixelId: '',
+    endpoint: import.meta.env.VITE_META_TRACKER_ENDPOINT,
+    apiKey: import.meta.env.VITE_META_TRACKER_API_KEY,
+    pixelId: import.meta.env.VITE_META_TRACKER_PIXEL,
     pixels: [],
     autoPageView: true,
     debug: false,

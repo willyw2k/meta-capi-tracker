@@ -36,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
                 'danger' => Color::Rose,
                 'gray' => Color::Slate,
-                'info' => Color::Sky,
+                'info' => Color::Teal,
                 'success' => Color::Emerald,
                 'warning' => Color::Amber,
             ])
@@ -75,9 +75,13 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->plugins([
+                \App\Filament\Themes\StackedTheme::make()
+            ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->databaseNotifications()
-            ->globalSearchKeyBindings(['command+k', 'ctrl+k']);
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->viteTheme('resources/css/filament/admin/theme.css');
     }
 }

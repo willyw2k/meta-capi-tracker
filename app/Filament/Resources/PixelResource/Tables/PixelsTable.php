@@ -8,7 +8,6 @@ use App\Models\Pixel;
 use Filament\Actions;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class PixelsTable
@@ -40,7 +39,7 @@ class PixelsTable
                 Tables\Columns\TextColumn::make('domains')
                     ->label('Domains')
                     ->badge()
-                    ->formatStateUsing(fn (?array $state): string => empty($state) ? 'All' : implode(', ', $state))
+                    ->formatStateUsing(fn (array|string $state): string => empty($state) ? 'All' : implode(', ', $state))
                     ->color(fn (?array $state): string => empty($state) ? 'gray' : 'info')
                     ->limit(30),
 
