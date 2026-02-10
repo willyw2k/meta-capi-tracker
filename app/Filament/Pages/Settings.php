@@ -202,6 +202,11 @@ class Settings extends Page
             ->keyBindings(['mod+s']);
     }
 
+    protected function hasFullWidthFormActions(): bool
+    {
+        return false;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
