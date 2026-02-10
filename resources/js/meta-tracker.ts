@@ -125,6 +125,7 @@ export interface TrackerConfig {
   hashPii: boolean;
   respectDnt: boolean;
   batchEvents: boolean;
+  minMatchQuality: number;
   browserPixel: BrowserPixelConfig;
   consent: ConsentConfig;
   cookieKeeper: CookieKeeperConfig;
@@ -255,6 +256,7 @@ declare global {
     hashPii: true,
     respectDnt: false,
     batchEvents: true,
+    minMatchQuality: 60,
     browserPixel: {
       enabled: false,
       autoPageView: true,
@@ -1700,6 +1702,11 @@ declare global {
 
       const matchScore = AdvancedMatching.scoreMatchQuality(enrichedUserData);
       log(`Match quality: ${matchScore}/100`);
+
+      if (matchScore < config.minMatchQuality) {
+        warn(`Match quality ${matchScore} below threshold ${config.minMatchQuality}, skipping event`);
+        return undefined;
+      }
 
       const pixelIds = options.pixel_id ? [options.pixel_id] : PixelRouter.resolve();
       if (!pixelIds.length) { warn('No pixel for:', window.location.hostname); return undefined; }
