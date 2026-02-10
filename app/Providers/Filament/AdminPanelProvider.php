@@ -76,7 +76,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->plugins([
-                \App\Filament\Themes\StackedTheme::make()
+                \App\Filament\Themes\StackedTheme::make(),
+                \AchyutN\FilamentLogViewer\FilamentLogViewer::make()
             ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')

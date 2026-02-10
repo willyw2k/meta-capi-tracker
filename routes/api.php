@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\DisguisedTrackController;
 use App\Http\Controllers\Api\MatchQualityController;
 use App\Http\Controllers\Api\PixelGifController;
 use App\Http\Controllers\Api\TrackEventController;
-use App\Http\Controllers\Api\TrackingScriptController;
 use App\Http\Middleware\HandleTrackingCors;
 use App\Http\Middleware\ValidateTrackingApiKey;
 use Illuminate\Support\Facades\Route;
@@ -26,9 +25,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // Public: Serve the client-side tracking script
-    Route::get('/track.js', TrackingScriptController::class)
-        ->name('tracking.script');
-
     // Protected: Primary tracking endpoints
     Route::middleware([HandleTrackingCors::class, ValidateTrackingApiKey::class])
         ->prefix('track')
