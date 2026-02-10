@@ -1,1 +1,1 @@
-{!! file_get_contents(resource_path('js/meta-tracker.js')) !!}
+{!! file_get_contents(public_path('js/meta-tracker.js')) !!}

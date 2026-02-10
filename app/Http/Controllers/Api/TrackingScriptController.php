@@ -8,12 +8,12 @@ use Illuminate\Http\Response;
 
 final readonly class TrackingScriptController
 {
-    public function __invoke(): Response
+    public function __invoke(): \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\View\View
     {
-        $script = view('tracking.pixel-script')->render();
-
-        return response($script, 200)
-            ->header('Content-Type', 'application/javascript')
-            ->header('Cache-Control', 'public, max-age=3600');
+        return view('tracking.pixel-script')
+            ->with([
+                'Content-Type', 'application/javascript',
+                'Cache-Control', 'public, max-age=3600'
+            ]);
     }
 }
