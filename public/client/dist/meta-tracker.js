@@ -786,25 +786,32 @@ var MetaTrackerBundle = (() => {
         this._mergeCapture("form", { [param]: value });
         log("AdvancedMatching: field captured", param);
       }, true);
-      document.querySelectorAll("form").forEach((f) => {
-        const d = this.scanForm(f);
-        if (Object.keys(d).length) {
-          this._mergeCapture("form_prefill", d);
-          log("AdvancedMatching: pre-filled form scanned", Object.keys(d));
-        }
-      });
-      if (typeof MutationObserver !== "undefined") {
-        const obs = new MutationObserver((muts) => {
-          for (const mut of muts) for (const node of mut.addedNodes) {
-            if (!(node instanceof HTMLElement)) continue;
-            const forms = node.tagName === "FORM" ? [node] : [...node.querySelectorAll("form")];
-            for (const f of forms) {
-              const d = this.scanForm(f);
-              if (Object.keys(d).length) this._mergeCapture("form_prefill", d);
-            }
+      const startObserving = () => {
+        document.querySelectorAll("form").forEach((f) => {
+          const d = this.scanForm(f);
+          if (Object.keys(d).length) {
+            this._mergeCapture("form_prefill", d);
+            log("AdvancedMatching: pre-filled form scanned", Object.keys(d));
           }
         });
-        obs.observe(document.body, { childList: true, subtree: true });
+        if (typeof MutationObserver !== "undefined" && document.body) {
+          const obs = new MutationObserver((muts) => {
+            for (const mut of muts) for (const node of mut.addedNodes) {
+              if (!(node instanceof HTMLElement)) continue;
+              const forms = node.tagName === "FORM" ? [node] : [...node.querySelectorAll("form")];
+              for (const f of forms) {
+                const d = this.scanForm(f);
+                if (Object.keys(d).length) this._mergeCapture("form_prefill", d);
+              }
+            }
+          });
+          obs.observe(document.body, { childList: true, subtree: true });
+        }
+      };
+      if (document.body) {
+        startObserving();
+      } else {
+        document.addEventListener("DOMContentLoaded", startObserving);
       }
     },
     // ── URL Parameter Capture ──────────────────────────────────
