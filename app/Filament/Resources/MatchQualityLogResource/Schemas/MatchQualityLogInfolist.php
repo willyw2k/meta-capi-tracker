@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\MatchQualityLogResource\Schemas;
 
 use Filament\Infolists;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 
 class MatchQualityLogInfolist
@@ -13,7 +14,7 @@ class MatchQualityLogInfolist
     {
         return $schema
             ->components([
-                Infolists\Components\Section::make('Event Info')
+                Schemas\Components\Section::make('Event Info')
                     ->icon('heroicon-o-bolt')
                     ->schema([
                         Infolists\Components\TextEntry::make('event_name')
@@ -27,7 +28,7 @@ class MatchQualityLogInfolist
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('Match Quality Score')
+                Schemas\Components\Section::make('Match Quality Score')
                     ->icon('heroicon-o-finger-print')
                     ->schema([
                         Infolists\Components\TextEntry::make('score')
@@ -52,7 +53,7 @@ class MatchQualityLogInfolist
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('PII Field Breakdown')
+                Schemas\Components\Section::make('PII Field Breakdown')
                     ->icon('heroicon-o-shield-check')
                     ->schema([
                         Infolists\Components\IconEntry::make('has_em')

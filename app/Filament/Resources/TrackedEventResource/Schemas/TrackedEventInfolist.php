@@ -7,6 +7,7 @@ namespace App\Filament\Resources\TrackedEventResource\Schemas;
 use App\Enums\EventStatus;
 use App\Models\TrackedEvent;
 use Filament\Infolists;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 
 class TrackedEventInfolist
@@ -15,7 +16,7 @@ class TrackedEventInfolist
     {
         return $schema
             ->components([
-                Infolists\Components\Section::make('Event Details')
+                Schemas\Components\Section::make('Event Details')
                     ->icon('heroicon-o-bolt')
                     ->schema([
                         Infolists\Components\TextEntry::make('event_id')
@@ -49,7 +50,7 @@ class TrackedEventInfolist
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('Delivery Status')
+                Schemas\Components\Section::make('Delivery Status')
                     ->icon('heroicon-o-paper-airplane')
                     ->schema([
                         Infolists\Components\TextEntry::make('status')
@@ -76,7 +77,7 @@ class TrackedEventInfolist
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('Custom Data')
+                Schemas\Components\Section::make('Custom Data')
                     ->icon('heroicon-o-code-bracket')
                     ->schema([
                         Infolists\Components\TextEntry::make('custom_data')
@@ -88,7 +89,7 @@ class TrackedEventInfolist
                     ])
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Meta API Response')
+                Schemas\Components\Section::make('Meta API Response')
                     ->icon('heroicon-o-server')
                     ->schema([
                         Infolists\Components\TextEntry::make('meta_response')

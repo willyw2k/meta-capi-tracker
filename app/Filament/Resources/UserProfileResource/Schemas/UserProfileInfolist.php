@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\UserProfileResource\Schemas;
 
 use Filament\Infolists;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 
 class UserProfileInfolist
@@ -13,7 +14,7 @@ class UserProfileInfolist
     {
         return $schema
             ->components([
-                Infolists\Components\Section::make('Identifiers')
+                Schemas\Components\Section::make('Identifiers')
                     ->icon('heroicon-o-finger-print')
                     ->schema([
                         Infolists\Components\TextEntry::make('external_id')
@@ -39,7 +40,7 @@ class UserProfileInfolist
                     ])
                     ->columns(2),
 
-                Infolists\Components\Section::make('PII Fields (Hashed)')
+                Schemas\Components\Section::make('PII Fields (Hashed)')
                     ->icon('heroicon-o-shield-check')
                     ->description('All PII is stored as SHA-256 hashes. Values shown are truncated hashes.')
                     ->schema([
@@ -96,7 +97,7 @@ class UserProfileInfolist
                     ])
                     ->columns(5),
 
-                Infolists\Components\Section::make('Multi-Value PII')
+                Schemas\Components\Section::make('Multi-Value PII')
                     ->icon('heroicon-o-rectangle-stack')
                     ->schema([
                         Infolists\Components\TextEntry::make('em_all')
@@ -116,7 +117,7 @@ class UserProfileInfolist
                     ->collapsible()
                     ->collapsed(),
 
-                Infolists\Components\Section::make('Profile Metadata')
+                Schemas\Components\Section::make('Profile Metadata')
                     ->icon('heroicon-o-information-circle')
                     ->schema([
                         Infolists\Components\TextEntry::make('pixel_id')

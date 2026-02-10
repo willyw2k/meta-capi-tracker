@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\PixelResource\Tables;
 
 use App\Models\Pixel;
+use Filament\Actions;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Actions;

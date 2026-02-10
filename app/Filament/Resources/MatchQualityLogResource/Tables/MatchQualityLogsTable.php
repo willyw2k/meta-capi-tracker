@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\MatchQualityLogResource\Tables;
 
 use App\Models\MatchQualityLog;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -157,12 +158,12 @@ class MatchQualityLogsTable
                     }),
             ])
             ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->recordActions([
+                Actions\ViewAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

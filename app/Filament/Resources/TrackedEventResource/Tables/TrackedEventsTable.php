@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Enums\MetaEventName;
 use App\Jobs\SendMetaEventJob;
 use App\Models\TrackedEvent;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Tables;
@@ -160,10 +161,10 @@ class TrackedEventsTable
                     }),
             ])
             ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->recordActions([
+                Actions\ViewAction::make(),
 
-                Tables\Actions\Action::make('retry')
+                Actions\Action::make('retry')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(fn (TrackedEvent $record): bool => $record->status === EventStatus::Failed)
@@ -182,11 +183,11 @@ class TrackedEventsTable
                             ->send();
                     }),
 
-                Tables\Actions\DeleteAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('retry_failed')
+                Actions\BulkActionGroup::make([
+                    Actions\BulkAction::make('retry_failed')
                         ->label('Retry Failed')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
@@ -210,7 +211,7 @@ class TrackedEventsTable
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

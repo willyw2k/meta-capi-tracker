@@ -6,16 +6,17 @@ namespace App\Filament\Pages;
 
 use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Schemas\Schema;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Artisan;
 
-class Settings extends Page implements HasForms
+class Settings extends Page implements HasSchemas
 {
-    use InteractsWithForms;
+    use InteractsWithSchemas;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
@@ -50,13 +51,13 @@ class Settings extends Page implements HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->schema([
-                Forms\Components\Tabs::make('Settings')
+            ->components([
+                Schemas\Components\Tabs::make('Settings')
                     ->tabs([
-                        Forms\Components\Tabs\Tab::make('General')
+                        Schemas\Components\Tabs\Tab::make('General')
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
-                                Forms\Components\Section::make('API Configuration')
+                                Schemas\Components\Section::make('API Configuration')
                                     ->schema([
                                         Forms\Components\TextInput::make('api_key')
                                             ->label('Tracking API Key')
@@ -71,7 +72,7 @@ class Settings extends Page implements HasForms
                                     ])
                                     ->columns(2),
 
-                                Forms\Components\Section::make('Event Processing')
+                                Schemas\Components\Section::make('Event Processing')
                                     ->schema([
                                         Forms\Components\TextInput::make('dedup_window_minutes')
                                             ->label('Deduplication Window')
@@ -86,7 +87,7 @@ class Settings extends Page implements HasForms
                                     ])
                                     ->columns(2),
 
-                                Forms\Components\Section::make('Data Retention')
+                                Schemas\Components\Section::make('Data Retention')
                                     ->schema([
                                         Forms\Components\TextInput::make('retention_sent')
                                             ->label('Sent Events Retention')
@@ -103,10 +104,10 @@ class Settings extends Page implements HasForms
                                     ->columns(2),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Cookie Keeper')
+                        Schemas\Components\Tabs\Tab::make('Cookie Keeper')
                             ->icon('heroicon-o-key')
                             ->schema([
-                                Forms\Components\Section::make('Cookie Keeper Configuration')
+                                Schemas\Components\Section::make('Cookie Keeper Configuration')
                                     ->description('Server-side first-party cookie management to survive ITP/Safari 7-day cookie limitations.')
                                     ->schema([
                                         Forms\Components\Toggle::make('cookie_keeper_enabled')
@@ -122,10 +123,10 @@ class Settings extends Page implements HasForms
                                     ->columns(2),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Advanced Matching')
+                        Schemas\Components\Tabs\Tab::make('Advanced Matching')
                             ->icon('heroicon-o-finger-print')
                             ->schema([
-                                Forms\Components\Section::make('Advanced Matching & Enrichment')
+                                Schemas\Components\Section::make('Advanced Matching & Enrichment')
                                     ->description('Server-side user profile enrichment for better Meta Event Match Quality.')
                                     ->schema([
                                         Forms\Components\Toggle::make('advanced_matching_enabled')
@@ -145,10 +146,10 @@ class Settings extends Page implements HasForms
                                     ->columns(2),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Ad Blocker Recovery')
+                        Schemas\Components\Tabs\Tab::make('Ad Blocker Recovery')
                             ->icon('heroicon-o-shield-check')
                             ->schema([
-                                Forms\Components\Section::make('Disguised Endpoint')
+                                Schemas\Components\Section::make('Disguised Endpoint')
                                     ->description('Generic-looking route path to evade ad blocker filter lists.')
                                     ->schema([
                                         Forms\Components\TextInput::make('disguised_path')
