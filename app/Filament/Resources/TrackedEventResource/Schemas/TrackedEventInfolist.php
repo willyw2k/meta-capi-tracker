@@ -81,9 +81,9 @@ class TrackedEventInfolist
                     ->icon('heroicon-o-code-bracket')
                     ->schema([
                         Infolists\Components\TextEntry::make('custom_data')
-                            ->formatStateUsing(fn (?array $state): string => $state
+                            ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                 ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-                                : 'None')
+                                : ($state !== null ? (string) $state : 'None'))
                             ->fontFamily('mono')
                             ->columnSpanFull(),
                     ])
@@ -93,9 +93,9 @@ class TrackedEventInfolist
                     ->icon('heroicon-o-server')
                     ->schema([
                         Infolists\Components\TextEntry::make('meta_response')
-                            ->formatStateUsing(fn (?array $state): string => $state
+                            ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                 ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-                                : 'No response yet')
+                                : ($state !== null ? (string) $state : 'No response yet'))
                             ->fontFamily('mono')
                             ->columnSpanFull(),
                     ])
