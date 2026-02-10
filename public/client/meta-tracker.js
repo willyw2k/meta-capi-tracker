@@ -61,7 +61,7 @@
       customEndpoints: [],
     },
     browserPixel: {
-      enabled: false,             // Auto-load Meta browser pixel (fbevents.js)
+      enabled: true,             // Auto-load Meta browser pixel (fbevents.js)
       autoPageView: true,         // Fire fbq('track', 'PageView') on init
       syncEvents: true,           // Mirror tracked events to browser pixel with same event_id
     },

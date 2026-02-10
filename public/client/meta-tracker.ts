@@ -256,7 +256,7 @@ declare global {
     respectDnt: false,
     batchEvents: true,
     browserPixel: {
-      enabled: false,
+      enabled: true,
       autoPageView: true,
       syncEvents: true,
     },
