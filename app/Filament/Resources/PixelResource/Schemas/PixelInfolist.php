@@ -7,6 +7,7 @@ namespace App\Filament\Resources\PixelResource\Schemas;
 use App\Enums\EventStatus;
 use App\Models\Pixel;
 use Filament\Infolists;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 
 class PixelInfolist
@@ -15,7 +16,7 @@ class PixelInfolist
     {
         return $schema
             ->components([
-                Infolists\Components\Section::make('Pixel Details')
+                Schemas\Components\Section::make('Pixel Details')
                     ->icon('heroicon-o-signal')
                     ->schema([
                         Infolists\Components\TextEntry::make('name'),
@@ -34,7 +35,7 @@ class PixelInfolist
                     ])
                     ->columns(2),
 
-                Infolists\Components\Section::make('Domains')
+                Schemas\Components\Section::make('Domains')
                     ->icon('heroicon-o-globe-alt')
                     ->schema([
                         Infolists\Components\TextEntry::make('domains')
@@ -43,7 +44,7 @@ class PixelInfolist
                             ->placeholder('All domains accepted'),
                     ]),
 
-                Infolists\Components\Section::make('Statistics')
+                Schemas\Components\Section::make('Statistics')
                     ->icon('heroicon-o-chart-bar')
                     ->schema([
                         Infolists\Components\TextEntry::make('tracked_events_count')

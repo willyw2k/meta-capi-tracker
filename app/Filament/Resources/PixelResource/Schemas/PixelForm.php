@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\PixelResource\Schemas;
 
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 
 class PixelForm
@@ -13,7 +14,7 @@ class PixelForm
     {
         return $schema
             ->components([
-                Forms\Components\Section::make('Pixel Configuration')
+                Schemas\Components\Section::make('Pixel Configuration')
                     ->description('Configure the Meta pixel and its access credentials.')
                     ->icon('heroicon-o-signal')
                     ->schema([
@@ -55,7 +56,7 @@ class PixelForm
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Domain Configuration')
+                Schemas\Components\Section::make('Domain Configuration')
                     ->description('Specify which domains this pixel should track. Leave empty to accept all domains.')
                     ->icon('heroicon-o-globe-alt')
                     ->schema([
