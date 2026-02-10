@@ -21,6 +21,10 @@ export interface PixelConfig { pixelId: string; domains: string[]; }
 export interface CookieKeeperConfig { enabled: boolean; refreshInterval: number; maxAge: number; cookieNames: string[]; }
 export interface BrowserPixelConfig { enabled: boolean; autoPageView: boolean; syncEvents: boolean; }
 export interface AdBlockRecoveryConfig { enabled: boolean; proxyPath: string; useBeacon: boolean; useImage: boolean; customEndpoints: string[]; }
+export interface ConsentConfig {
+  enabled: boolean; mode: 'opt-in' | 'opt-out'; consentCategory: string;
+  waitForConsent: boolean; defaultConsent: boolean;
+}
 export interface AdvancedMatchingConfig {
   enabled: boolean; autoCaptureForms: boolean; captureUrlParams: boolean;
   captureDataLayer: boolean; captureMetaTags: boolean; autoIdentifyOnSubmit: boolean;
@@ -31,7 +35,7 @@ export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
   respectDnt: boolean; batchEvents: boolean;
-  browserPixel: BrowserPixelConfig;
+  browserPixel: BrowserPixelConfig; consent: ConsentConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
   advancedMatching: AdvancedMatchingConfig;
 }
@@ -123,6 +127,9 @@ export interface MetaTrackerAPI {
   addPixel(pixelId: string, domains: string | string[]): void;
   removePixel(pixelId: string): void;
   refreshCookies(): void;
+  hasConsent(): boolean;
+  grantConsent(): void;
+  revokeConsent(): void;
   flush(): void;
   isAdBlocked(): boolean;
   getTransport(): string;

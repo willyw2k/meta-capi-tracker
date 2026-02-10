@@ -43,6 +43,7 @@ var MetaTrackerBundle = (() => {
     cookieKeeper: { enabled: true, refreshInterval: 864e5, maxAge: 180, cookieNames: ["_fbp", "_fbc", "_mt_id"] },
     adBlockRecovery: { enabled: true, proxyPath: "/collect", useBeacon: true, useImage: true, customEndpoints: [] },
     browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
+    consent: { enabled: false, mode: "opt-in", consentCategory: "C0004", waitForConsent: true, defaultConsent: false },
     advancedMatching: {
       enabled: true,
       autoCaptureForms: true,
@@ -64,6 +65,7 @@ var MetaTrackerBundle = (() => {
   function mergeConfig(opts) {
     Object.assign(config, opts, {
       browserPixel: { ...config.browserPixel, ...opts.browserPixel ?? {} },
+      consent: { ...config.consent, ...opts.consent ?? {} },
       cookieKeeper: { ...config.cookieKeeper, ...opts.cookieKeeper ?? {} },
       adBlockRecovery: { ...config.adBlockRecovery, ...opts.adBlockRecovery ?? {} },
       advancedMatching: { ...config.advancedMatching, ...opts.advancedMatching ?? {} }
@@ -1085,6 +1087,99 @@ var MetaTrackerBundle = (() => {
     }
   };
 
+  // src/consent-manager.ts
+  var consentPendingQueue = [];
+  var consentGranted2 = null;
+  var ConsentManager = {
+    init() {
+      if (!config.consent || !config.consent.enabled) { consentGranted2 = true; return; }
+      consentGranted2 = config.consent.mode === "opt-out" ? (config.consent.defaultConsent ?? true) : (config.consent.defaultConsent ?? false);
+      log("ConsentManager: mode=" + config.consent.mode, "default=" + consentGranted2);
+      this._detectCMP();
+    },
+    _detectCMP() {
+      if (typeof window.OneTrust !== "undefined" || typeof window.OptanonWrapper !== "undefined") { this._initOneTrust(); return; }
+      if (typeof window.Cookiebot !== "undefined") { this._initCookiebot(); return; }
+      if (typeof window.truste !== "undefined") { this._initTrustArc(); return; }
+      if (typeof window.Osano !== "undefined") { this._initOsano(); return; }
+      if (typeof window.gtag === "function") { this._initGoogleConsentMode(); return; }
+      if (typeof window.__tcfapi === "function") { this._initTCF(); return; }
+      log("ConsentManager: no CMP detected, using default consent=" + consentGranted2);
+      if (config.consent.waitForConsent) {
+        var recheck = () => {
+          if (typeof window.OneTrust !== "undefined") { this._initOneTrust(); return; }
+          if (typeof window.Cookiebot !== "undefined") { this._initCookiebot(); return; }
+          if (typeof window.truste !== "undefined") { this._initTrustArc(); return; }
+          if (typeof window.Osano !== "undefined") { this._initOsano(); return; }
+          if (typeof window.__tcfapi === "function") { this._initTCF(); return; }
+          log("ConsentManager: no CMP after DOM ready");
+        };
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", recheck);
+        else setTimeout(recheck, 1e3);
+      }
+    },
+    _initOneTrust() {
+      log("ConsentManager: OneTrust detected");
+      var category = config.consent.consentCategory;
+      var checkConsent = () => { var groups = window.OnetrustActiveGroups || ""; this._updateConsent(groups.includes(category), "OneTrust"); };
+      var origWrapper = window.OptanonWrapper;
+      window.OptanonWrapper = function() { if (typeof origWrapper === "function") origWrapper(); checkConsent(); };
+      if (window.OnetrustActiveGroups) checkConsent();
+    },
+    _initCookiebot() {
+      log("ConsentManager: Cookiebot detected");
+      var checkConsent = () => { var cb = window.Cookiebot; if (!cb) return; this._updateConsent(cb.consent?.marketing === true, "Cookiebot"); };
+      window.addEventListener("CookiebotOnAccept", checkConsent);
+      window.addEventListener("CookiebotOnDecline", checkConsent);
+      if (window.Cookiebot?.consented) checkConsent();
+    },
+    _initTrustArc() {
+      log("ConsentManager: TrustArc detected");
+      var checkConsent = () => { try { var behavior = window.truste?.eu?.bindMap?.prefCookie; this._updateConsent(behavior !== void 0 ? parseInt(behavior, 10) >= 3 : false, "TrustArc"); } catch {} };
+      window.addEventListener("message", (e) => { if (typeof e.data === "string" && e.data.includes("truste.eu.cookie")) setTimeout(checkConsent, 100); });
+      checkConsent();
+    },
+    _initOsano() {
+      log("ConsentManager: Osano detected");
+      var osano = window.Osano;
+      if (typeof osano?.cm?.addEventListener === "function") { osano.cm.addEventListener("osano-cm-consent-saved", (change) => { this._updateConsent(change.MARKETING === "ACCEPT", "Osano"); }); }
+      if (typeof osano?.cm?.getConsent === "function") { var consent = osano.cm.getConsent(); if (consent.MARKETING) this._updateConsent(consent.MARKETING === "ACCEPT", "Osano"); }
+    },
+    _initGoogleConsentMode() {
+      log("ConsentManager: Google Consent Mode detected");
+      var dl = window.dataLayer || [];
+      var origPush = dl.push.bind(dl);
+      dl.push = (...args) => { var r = origPush(...args); for (var entry of args) { if (entry && typeof entry === "object" && entry[0] === "consent" && entry[1] === "update") { var params = entry[2]; if (params?.ad_storage) this._updateConsent(params.ad_storage === "granted", "GoogleConsentMode"); } } return r; };
+      try { var cs = window.google_tag_data?.ics?.entries; if (cs?.ad_storage) this._updateConsent(cs.ad_storage.value === "granted", "GoogleConsentMode"); } catch {}
+    },
+    _initTCF() {
+      log("ConsentManager: IAB TCF v2 detected");
+      var checkTCF = () => { window.__tcfapi("getTCData", 2, (data, success) => { if (!success || !data) return; if (!data.gdprApplies) { this._updateConsent(true, "TCF"); return; } var consents = data.purpose?.consents ?? {}; this._updateConsent(consents[1] === true && consents[4] === true, "TCF"); }); };
+      window.__tcfapi("addEventListener", 2, (_, success) => { if (success) checkTCF(); });
+      checkTCF();
+    },
+    _updateConsent(granted, source) {
+      var prev = consentGranted2;
+      consentGranted2 = granted;
+      if (prev !== granted) log("ConsentManager: consent " + (granted ? "GRANTED" : "REVOKED") + " via " + source);
+      if (granted && consentPendingQueue.length) this._flushPending();
+    },
+    _flushPending() {
+      log("ConsentManager: flushing", consentPendingQueue.length, "queued calls");
+      while (consentPendingQueue.length) { var call = consentPendingQueue.shift(); var fn = MetaTracker[call.method]; if (typeof fn === "function") fn.apply(MetaTracker, call.args); }
+    },
+    hasConsent() { if (!config.consent || !config.consent.enabled) return true; return consentGranted2 === true; },
+    grantConsent() { this._updateConsent(true, "manual"); },
+    revokeConsent() { this._updateConsent(false, "manual"); },
+    queueIfNeeded(method, args) {
+      if (!config.consent || !config.consent.enabled) return false;
+      if (consentGranted2 === true) return false;
+      if (config.consent.waitForConsent) { consentPendingQueue.push({ method, args }); log("ConsentManager: queued", method, "(" + consentPendingQueue.length + " pending)"); return true; }
+      warn("ConsentManager: blocked", method, "(no consent)");
+      return true;
+    }
+  };
+
   // src/index.ts
   async function sendEvents(events) {
     if (!events.length) return;
@@ -1128,6 +1223,7 @@ var MetaTrackerBundle = (() => {
       mergeConfig(options);
       setInitialized(true);
       log("Initialized v" + VERSION);
+      ConsentManager.init();
       CookieKeeper.init();
       AdvancedMatching.init();
       BrowserPixel.init();
@@ -1148,6 +1244,7 @@ var MetaTrackerBundle = (() => {
         warn("Not initialized");
         return void 0;
       }
+      if (ConsentManager.queueIfNeeded("track", [eventName, customData, userData, options])) return void 0;
       const eventId = options.event_id ?? generateEventId();
       const enrichedUserData = config.advancedMatching.enabled ? await AdvancedMatching.buildUserData(userData) : await AdvancedMatching.normalizeAndHash(userData);
       const matchScore = AdvancedMatching.scoreMatchQuality(enrichedUserData);
@@ -1242,6 +1339,10 @@ var MetaTrackerBundle = (() => {
     refreshCookies() {
       CookieKeeper.refreshCookies();
     },
+    // ── Consent ──────────────────────────────────────────────
+    hasConsent() { return ConsentManager.hasConsent(); },
+    grantConsent() { ConsentManager.grantConsent(); },
+    revokeConsent() { ConsentManager.revokeConsent(); },
     // ── Diagnostics ────────────────────────────────────────────
     flush() {
       flushQueue();

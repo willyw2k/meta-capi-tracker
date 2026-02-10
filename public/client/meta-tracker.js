@@ -65,6 +65,13 @@
       autoPageView: true,         // Fire fbq('track', 'PageView') on init
       syncEvents: true,           // Mirror tracked events to browser pixel with same event_id
     },
+    consent: {
+      enabled: false,             // Enable consent management
+      mode: 'opt-in',            // 'opt-in' = block until consent, 'opt-out' = allow until revoked
+      consentCategory: 'C0004',  // OneTrust category for advertising/targeting
+      waitForConsent: true,      // Queue events while waiting for consent
+      defaultConsent: false,     // Default consent state before CMP responds
+    },
     advancedMatching: {
       enabled: true,
       autoCaptureForms: true,
@@ -1351,6 +1358,176 @@
   };
 
   // ══════════════════════════════════════════════════════════════
+  // ── CONSENT MANAGER
+  // ══════════════════════════════════════════════════════════════
+
+  const consentPendingQueue = [];
+  let consentGranted = null;
+
+  const ConsentManager = {
+
+    init() {
+      if (!config.consent.enabled) {
+        consentGranted = true;
+        return;
+      }
+      consentGranted = config.consent.mode === 'opt-out'
+        ? (config.consent.defaultConsent ?? true)
+        : (config.consent.defaultConsent ?? false);
+      log('ConsentManager: mode=' + config.consent.mode, 'default=' + consentGranted);
+      this._detectCMP();
+    },
+
+    _detectCMP() {
+      if (typeof window.OneTrust !== 'undefined' || typeof window.OptanonWrapper !== 'undefined') { this._initOneTrust(); return; }
+      if (typeof window.Cookiebot !== 'undefined') { this._initCookiebot(); return; }
+      if (typeof window.truste !== 'undefined') { this._initTrustArc(); return; }
+      if (typeof window.Osano !== 'undefined') { this._initOsano(); return; }
+      if (typeof window.gtag === 'function') { this._initGoogleConsentMode(); return; }
+      if (typeof window.__tcfapi === 'function') { this._initTCF(); return; }
+      log('ConsentManager: no CMP detected, using default consent=' + consentGranted);
+
+      if (config.consent.waitForConsent) {
+        const recheck = () => {
+          if (typeof window.OneTrust !== 'undefined') { this._initOneTrust(); return; }
+          if (typeof window.Cookiebot !== 'undefined') { this._initCookiebot(); return; }
+          if (typeof window.truste !== 'undefined') { this._initTrustArc(); return; }
+          if (typeof window.Osano !== 'undefined') { this._initOsano(); return; }
+          if (typeof window.__tcfapi === 'function') { this._initTCF(); return; }
+          log('ConsentManager: no CMP after DOM ready');
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', recheck);
+        else setTimeout(recheck, 1000);
+      }
+    },
+
+    _initOneTrust() {
+      log('ConsentManager: OneTrust detected');
+      const category = config.consent.consentCategory;
+      const checkConsent = () => {
+        const groups = window.OnetrustActiveGroups || '';
+        this._updateConsent(groups.includes(category), 'OneTrust');
+      };
+      const origWrapper = window.OptanonWrapper;
+      window.OptanonWrapper = function () {
+        if (typeof origWrapper === 'function') origWrapper();
+        checkConsent();
+      };
+      if (window.OnetrustActiveGroups) checkConsent();
+    },
+
+    _initCookiebot() {
+      log('ConsentManager: Cookiebot detected');
+      const checkConsent = () => {
+        const cb = window.Cookiebot;
+        if (!cb) return;
+        this._updateConsent(cb.consent?.marketing === true, 'Cookiebot');
+      };
+      window.addEventListener('CookiebotOnAccept', checkConsent);
+      window.addEventListener('CookiebotOnDecline', checkConsent);
+      if (window.Cookiebot?.consented) checkConsent();
+    },
+
+    _initTrustArc() {
+      log('ConsentManager: TrustArc detected');
+      const checkConsent = () => {
+        try {
+          const behavior = window.truste?.eu?.bindMap?.prefCookie;
+          this._updateConsent(behavior !== undefined ? parseInt(behavior, 10) >= 3 : false, 'TrustArc');
+        } catch { /* ignore */ }
+      };
+      window.addEventListener('message', (e) => {
+        if (typeof e.data === 'string' && e.data.includes('truste.eu.cookie')) setTimeout(checkConsent, 100);
+      });
+      checkConsent();
+    },
+
+    _initOsano() {
+      log('ConsentManager: Osano detected');
+      const osano = window.Osano;
+      if (typeof osano?.cm?.addEventListener === 'function') {
+        osano.cm.addEventListener('osano-cm-consent-saved', (change) => {
+          this._updateConsent(change.MARKETING === 'ACCEPT', 'Osano');
+        });
+      }
+      if (typeof osano?.cm?.getConsent === 'function') {
+        const consent = osano.cm.getConsent();
+        if (consent.MARKETING) this._updateConsent(consent.MARKETING === 'ACCEPT', 'Osano');
+      }
+    },
+
+    _initGoogleConsentMode() {
+      log('ConsentManager: Google Consent Mode detected');
+      const dl = window.dataLayer || [];
+      const origPush = dl.push.bind(dl);
+      dl.push = (...args) => {
+        const r = origPush(...args);
+        for (const entry of args) {
+          if (entry && typeof entry === 'object' && entry[0] === 'consent' && entry[1] === 'update') {
+            const params = entry[2];
+            if (params?.ad_storage) this._updateConsent(params.ad_storage === 'granted', 'GoogleConsentMode');
+          }
+        }
+        return r;
+      };
+      try {
+        const cs = window.google_tag_data?.ics?.entries;
+        if (cs?.ad_storage) this._updateConsent(cs.ad_storage.value === 'granted', 'GoogleConsentMode');
+      } catch { /* ignore */ }
+    },
+
+    _initTCF() {
+      log('ConsentManager: IAB TCF v2 detected');
+      const checkTCF = () => {
+        window.__tcfapi('getTCData', 2, (data, success) => {
+          if (!success || !data) return;
+          if (!data.gdprApplies) { this._updateConsent(true, 'TCF'); return; }
+          const consents = data.purpose?.consents ?? {};
+          this._updateConsent(consents[1] === true && consents[4] === true, 'TCF');
+        });
+      };
+      window.__tcfapi('addEventListener', 2, (_, success) => { if (success) checkTCF(); });
+      checkTCF();
+    },
+
+    _updateConsent(granted, source) {
+      const prev = consentGranted;
+      consentGranted = granted;
+      if (prev !== granted) log('ConsentManager: consent ' + (granted ? 'GRANTED' : 'REVOKED') + ' via ' + source);
+      if (granted && consentPendingQueue.length) this._flushPending();
+    },
+
+    _flushPending() {
+      log('ConsentManager: flushing', consentPendingQueue.length, 'queued calls');
+      while (consentPendingQueue.length) {
+        const call = consentPendingQueue.shift();
+        const fn = MetaTracker[call.method];
+        if (typeof fn === 'function') fn.apply(MetaTracker, call.args);
+      }
+    },
+
+    hasConsent() {
+      if (!config.consent.enabled) return true;
+      return consentGranted === true;
+    },
+
+    grantConsent() { this._updateConsent(true, 'manual'); },
+    revokeConsent() { this._updateConsent(false, 'manual'); },
+
+    queueIfNeeded(method, args) {
+      if (!config.consent.enabled) return false;
+      if (consentGranted === true) return false;
+      if (config.consent.waitForConsent) {
+        consentPendingQueue.push({ method, args });
+        log('ConsentManager: queued', method, '(' + consentPendingQueue.length + ' pending)');
+        return true;
+      }
+      warn('ConsentManager: blocked', method, '(no consent)');
+      return true;
+    },
+  };
+
+  // ══════════════════════════════════════════════════════════════
   // ── PUBLIC API
   // ══════════════════════════════════════════════════════════════
 
@@ -1366,6 +1543,7 @@
       config = {
         ...config, ...options,
         browserPixel: { ...config.browserPixel, ...(options.browserPixel || {}) },
+        consent: { ...config.consent, ...(options.consent || {}) },
         cookieKeeper: { ...config.cookieKeeper, ...(options.cookieKeeper || {}) },
         adBlockRecovery: { ...config.adBlockRecovery, ...(options.adBlockRecovery || {}) },
         advancedMatching: { ...config.advancedMatching, ...(options.advancedMatching || {}) },
@@ -1374,6 +1552,7 @@
       initialized = true;
       log('Initialized v' + VERSION);
 
+      ConsentManager.init();
       BrowserPixel.init();
       CookieKeeper.init();
       AdvancedMatching.init();
@@ -1395,6 +1574,7 @@
      */
     async track(eventName, customData = {}, userData = {}, options = {}) {
       if (!initialized) { warn('Not initialized'); return; }
+      if (ConsentManager.queueIfNeeded('track', [eventName, customData, userData, options])) return;
 
       const eventId = options.event_id || generateEventId();
 
@@ -1514,6 +1694,12 @@
     // ── Cookie Keeper ──────────────────────────────────────────
 
     refreshCookies() { CookieKeeper.refreshCookies(); },
+
+    // ── Consent ────────────────────────────────────────────────
+
+    hasConsent() { return ConsentManager.hasConsent(); },
+    grantConsent() { ConsentManager.grantConsent(); },
+    revokeConsent() { ConsentManager.revokeConsent(); },
 
     // ── Diagnostics ────────────────────────────────────────────
 
