@@ -39,7 +39,7 @@ class PixelsTable
                 Tables\Columns\TextColumn::make('domains')
                     ->label('Domains')
                     ->badge()
-                    ->formatStateUsing(fn (array|string $state): string => empty($state) ? 'All' : implode(', ', $state))
+                    ->formatStateUsing(fn (string $state): string => empty($state) ? 'All' : implode(', ', json_decode($state, true)))
                     ->color(fn (?array $state): string => empty($state) ? 'gray' : 'info')
                     ->limit(30),
 
