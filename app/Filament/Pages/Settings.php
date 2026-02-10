@@ -23,8 +23,6 @@ class Settings extends Page
 
     protected static ?int $navigationSort = 10;
 
-    protected string $view = 'filament.pages.settings';
-
     public ?array $data = [];
 
     public function mount(): void
