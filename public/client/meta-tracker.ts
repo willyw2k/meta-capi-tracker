@@ -700,26 +700,35 @@ declare global {
         log('AdvancedMatching: field captured', param);
       }, true);
 
-      // Scan existing forms
-      this._scanExistingForms();
+      // Scan existing forms and observe for new ones once DOM is ready
+      const startObserving = () => {
+        this._scanExistingForms();
 
-      // Watch for dynamically added forms
-      if (window.MutationObserver) {
-        this._formObserver = new MutationObserver((mutations: MutationRecord[]) => {
-          for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-              if (node.nodeType !== 1) continue;
-              const el = node as HTMLElement;
-              if (el.tagName === 'FORM') {
-                this._scanSingleForm(el as HTMLFormElement);
-              } else if (el.querySelectorAll) {
-                el.querySelectorAll<HTMLFormElement>('form').forEach(f => this._scanSingleForm(f));
+        // Watch for dynamically added forms
+        if (window.MutationObserver && document.body) {
+          this._formObserver = new MutationObserver((mutations: MutationRecord[]) => {
+            for (const mutation of mutations) {
+              for (const node of mutation.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                const el = node as HTMLElement;
+                if (el.tagName === 'FORM') {
+                  this._scanSingleForm(el as HTMLFormElement);
+                } else if (el.querySelectorAll) {
+                  el.querySelectorAll<HTMLFormElement>('form').forEach(f => this._scanSingleForm(f));
+                }
               }
             }
-          }
-        });
+          });
 
-        this._formObserver.observe(document.body, { childList: true, subtree: true });
+          this._formObserver.observe(document.body, { childList: true, subtree: true });
+        }
+      };
+
+      // Defer if document.body isn't available yet (script in <head>)
+      if (document.body) {
+        startObserving();
+      } else {
+        document.addEventListener('DOMContentLoaded', startObserving);
       }
     },
 
