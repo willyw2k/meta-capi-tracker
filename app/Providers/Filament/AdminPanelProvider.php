@@ -77,7 +77,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 \App\Filament\Themes\StackedTheme::make(),
-                \AchyutN\FilamentLogViewer\FilamentLogViewer::make()
+                \AchyutN\FilamentLogViewer\FilamentLogViewer::make(),
+                \RalphJSmit\Filament\Pulse\FilamentPulse::make(),
             ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
