@@ -102,15 +102,15 @@ class UserProfileInfolist
                     ->schema([
                         Infolists\Components\TextEntry::make('em_all')
                             ->label('All Email Hashes')
-                            ->formatStateUsing(fn (?array $state): string => $state
+                            ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                 ? implode("\n", array_map(fn (string $h) => substr($h, 0, 24) . '…', $state))
-                                : 'None')
+                                : ($state !== null ? (string) $state : 'None'))
                             ->fontFamily('mono'),
                         Infolists\Components\TextEntry::make('ph_all')
                             ->label('All Phone Hashes')
-                            ->formatStateUsing(fn (?array $state): string => $state
+                            ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                 ? implode("\n", array_map(fn (string $h) => substr($h, 0, 24) . '…', $state))
-                                : 'None')
+                                : ($state !== null ? (string) $state : 'None'))
                             ->fontFamily('mono'),
                     ])
                     ->columns(2)
