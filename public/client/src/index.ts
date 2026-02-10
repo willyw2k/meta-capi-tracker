@@ -23,6 +23,7 @@ import { CookieKeeper } from './cookie-keeper';
 import { AdBlockRecovery } from './ad-block-recovery';
 import { PixelRouter } from './pixel-router';
 import { AdvancedMatching } from './advanced-matching';
+import { BrowserPixel } from './browser-pixel';
 import type {
   TrackerInitOptions, MetaEventName, CustomData, RawUserData,
   TrackOptions, TrackingEvent, MetaTrackerAPI, CaptureSource,
@@ -72,6 +73,7 @@ const MetaTracker: MetaTrackerAPI = {
 
     CookieKeeper.init();
     AdvancedMatching.init();
+    BrowserPixel.init();
 
     if (config.adBlockRecovery.enabled) {
       AdBlockRecovery.detect().then((blocked: boolean) => { if (blocked) log('Ad blocker recovery: ACTIVE'); });
@@ -117,6 +119,7 @@ const MetaTracker: MetaTrackerAPI = {
       if (Object.keys(customData).length) event.custom_data = customData;
       log('Track:', eventName, '→', pixelId, `(match: ${matchScore})`);
       enqueueEvent(event);
+      BrowserPixel.trackEvent(eventName, event.event_id, customData);
     }
 
     return eventId;
@@ -232,5 +235,5 @@ export type {
   TrackerConfig, TrackerInitOptions, MetaEventName, MetaStandardEvent,
   CustomData, RawUserData, HashedUserData, TrackOptions, TrackingEvent,
   MetaTrackerAPI, PixelConfig, CookieKeeperConfig, AdBlockRecoveryConfig,
-  AdvancedMatchingConfig, CaptureSource, MatchQualityResult, DebugInfo,
+  AdvancedMatchingConfig, BrowserPixelConfig, CaptureSource, MatchQualityResult, DebugInfo,
 } from './types';

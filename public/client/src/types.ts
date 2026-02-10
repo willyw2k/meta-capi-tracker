@@ -19,6 +19,7 @@ export type UserDataAlias =
 
 export interface PixelConfig { pixelId: string; domains: string[]; }
 export interface CookieKeeperConfig { enabled: boolean; refreshInterval: number; maxAge: number; cookieNames: string[]; }
+export interface BrowserPixelConfig { enabled: boolean; autoPageView: boolean; syncEvents: boolean; }
 export interface AdBlockRecoveryConfig { enabled: boolean; proxyPath: string; useBeacon: boolean; useImage: boolean; customEndpoints: string[]; }
 export interface AdvancedMatchingConfig {
   enabled: boolean; autoCaptureForms: boolean; captureUrlParams: boolean;
@@ -30,6 +31,7 @@ export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
   respectDnt: boolean; batchEvents: boolean;
+  browserPixel: BrowserPixelConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
   advancedMatching: AdvancedMatchingConfig;
 }

@@ -42,6 +42,7 @@ var MetaTrackerBundle = (() => {
     batchEvents: true,
     cookieKeeper: { enabled: true, refreshInterval: 864e5, maxAge: 180, cookieNames: ["_fbp", "_fbc", "_mt_id"] },
     adBlockRecovery: { enabled: true, proxyPath: "/collect", useBeacon: true, useImage: true, customEndpoints: [] },
+    browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
     advancedMatching: {
       enabled: true,
       autoCaptureForms: true,
@@ -62,6 +63,7 @@ var MetaTrackerBundle = (() => {
   var cookieKeeperTimer = null;
   function mergeConfig(opts) {
     Object.assign(config, opts, {
+      browserPixel: { ...config.browserPixel, ...opts.browserPixel ?? {} },
       cookieKeeper: { ...config.cookieKeeper, ...opts.cookieKeeper ?? {} },
       adBlockRecovery: { ...config.adBlockRecovery, ...opts.adBlockRecovery ?? {} },
       advancedMatching: { ...config.advancedMatching, ...opts.advancedMatching ?? {} }
@@ -1011,6 +1013,78 @@ var MetaTrackerBundle = (() => {
     storageMap
   };
 
+  // src/browser-pixel.ts
+  var STANDARD_EVENTS = [
+    "PageView", "ViewContent", "AddToCart", "AddPaymentInfo",
+    "AddToWishlist", "CompleteRegistration", "Contact", "CustomizeProduct",
+    "Donate", "FindLocation", "InitiateCheckout", "Lead", "Purchase",
+    "Schedule", "Search", "StartTrial", "SubmitApplication", "Subscribe"
+  ];
+  var BrowserPixel = {
+    _loaded: false,
+    init() {
+      if (!config.browserPixel || !config.browserPixel.enabled) return;
+      if (this._loaded) return;
+      if (typeof window.fbq === "function") {
+        log("BrowserPixel: fbq already present, initializing pixels");
+        this._initPixels();
+        this._loaded = true;
+        return;
+      }
+      log("BrowserPixel: loading fbevents.js");
+      var n = window.fbq = function() {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!window._fbq) window._fbq = n;
+      n.push = n;
+      n.loaded = true;
+      n.version = "2.0";
+      n.queue = [];
+      var script = document.createElement("script");
+      script.async = true;
+      script.src = "https://connect.facebook.net/en_US/fbevents.js";
+      var firstScript = document.getElementsByTagName("script")[0];
+      if (firstScript && firstScript.parentNode) {
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        var insert = function() {
+          var s = document.getElementsByTagName("script")[0];
+          if (s && s.parentNode) s.parentNode.insertBefore(script, s);
+          else document.head.appendChild(script);
+        };
+        if (document.body) insert();
+        else document.addEventListener("DOMContentLoaded", insert);
+      }
+      this._initPixels();
+      this._loaded = true;
+    },
+    _initPixels() {
+      var pixelIds = PixelRouter.getAllPixelIds();
+      if (!pixelIds.length) { warn("BrowserPixel: no pixel IDs configured"); return; }
+      for (var pid of pixelIds) {
+        window.fbq("init", pid);
+        log("BrowserPixel: init pixel", pid);
+      }
+      if (config.browserPixel.autoPageView) {
+        window.fbq("track", "PageView");
+        log("BrowserPixel: PageView fired");
+      }
+    },
+    trackEvent(eventName, eventId, customData) {
+      if (!config.browserPixel || !config.browserPixel.enabled || !config.browserPixel.syncEvents) return;
+      if (typeof window.fbq !== "function") return;
+      var isStandard = STANDARD_EVENTS.includes(eventName);
+      var fbqParams = { ...customData || {} };
+      var fbqOptions = { eventID: eventId };
+      if (isStandard) {
+        window.fbq("track", eventName, fbqParams, fbqOptions);
+      } else {
+        window.fbq("trackCustom", eventName, fbqParams, fbqOptions);
+      }
+      log("BrowserPixel: synced", eventName, "eventID:", eventId);
+    }
+  };
+
   // src/index.ts
   async function sendEvents(events) {
     if (!events.length) return;
@@ -1056,6 +1130,7 @@ var MetaTrackerBundle = (() => {
       log("Initialized v" + VERSION);
       CookieKeeper.init();
       AdvancedMatching.init();
+      BrowserPixel.init();
       if (config.adBlockRecovery.enabled) {
         AdBlockRecovery.detect().then((blocked) => {
           if (blocked) log("Ad blocker recovery: ACTIVE");
@@ -1097,6 +1172,7 @@ var MetaTrackerBundle = (() => {
         if (Object.keys(customData).length) event.custom_data = customData;
         log("Track:", eventName, "\u2192", pixelId, `(match: ${matchScore})`);
         enqueueEvent(event);
+        BrowserPixel.trackEvent(eventName, event.event_id, customData);
       }
       return eventId;
     },

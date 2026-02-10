@@ -60,6 +60,11 @@
       useImage: true,
       customEndpoints: [],
     },
+    browserPixel: {
+      enabled: false,             // Auto-load Meta browser pixel (fbevents.js)
+      autoPageView: true,         // Fire fbq('track', 'PageView') on init
+      syncEvents: true,           // Mirror tracked events to browser pixel with same event_id
+    },
     advancedMatching: {
       enabled: true,
       autoCaptureForms: true,
@@ -1239,6 +1244,113 @@
   }
 
   // ══════════════════════════════════════════════════════════════
+  // ── BROWSER PIXEL (auto-load Meta fbevents.js)
+  // ══════════════════════════════════════════════════════════════
+
+  const BrowserPixel = {
+    _loaded: false,
+
+    /**
+     * Inject the Meta Pixel base code and initialize all configured pixel IDs.
+     */
+    init() {
+      if (!config.browserPixel.enabled) return;
+      if (this._loaded) return;
+      if (typeof window.fbq === 'function') {
+        // fbq already loaded by the site — just init our pixel IDs
+        log('BrowserPixel: fbq already present, initializing pixels');
+        this._initPixels();
+        this._loaded = true;
+        return;
+      }
+
+      log('BrowserPixel: loading fbevents.js');
+
+      // Standard Meta Pixel base code
+      const n = window.fbq = function () {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!window._fbq) window._fbq = n;
+      n.push = n;
+      n.loaded = true;
+      n.version = '2.0';
+      n.queue = [];
+
+      // Load fbevents.js
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+      const firstScript = document.getElementsByTagName('script')[0];
+      if (firstScript && firstScript.parentNode) {
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        // Defer if no scripts exist yet (script in <head> before anything)
+        const insert = () => {
+          const s = document.getElementsByTagName('script')[0];
+          if (s && s.parentNode) s.parentNode.insertBefore(script, s);
+          else document.head.appendChild(script);
+        };
+        if (document.body) insert();
+        else document.addEventListener('DOMContentLoaded', insert);
+      }
+
+      this._initPixels();
+      this._loaded = true;
+    },
+
+    /**
+     * Call fbq('init', pixelId) for each configured pixel.
+     */
+    _initPixels() {
+      const pixelIds = PixelRouter.getAllPixelIds();
+
+      if (!pixelIds.length) {
+        warn('BrowserPixel: no pixel IDs configured');
+        return;
+      }
+
+      for (const pid of pixelIds) {
+        window.fbq('init', pid);
+        log('BrowserPixel: init pixel', pid);
+      }
+
+      if (config.browserPixel.autoPageView) {
+        window.fbq('track', 'PageView');
+        log('BrowserPixel: PageView fired');
+      }
+    },
+
+    /**
+     * Fire a browser pixel event with the same eventID for deduplication.
+     * Meta deduplicates browser + server events when event_name and event_id match.
+     */
+    trackEvent(eventName, eventId, customData = {}, pixelId = null) {
+      if (!config.browserPixel.enabled || !config.browserPixel.syncEvents) return;
+      if (typeof window.fbq !== 'function') return;
+
+      // Standard Meta events that fbq recognizes
+      const standardEvents = [
+        'PageView', 'ViewContent', 'AddToCart', 'AddPaymentInfo',
+        'AddToWishlist', 'CompleteRegistration', 'Contact', 'CustomizeProduct',
+        'Donate', 'FindLocation', 'InitiateCheckout', 'Lead', 'Purchase',
+        'Schedule', 'Search', 'StartTrial', 'SubmitApplication', 'Subscribe',
+      ];
+
+      const isStandard = standardEvents.includes(eventName);
+      const fbqParams = { ...customData };
+      const fbqOptions = { eventID: eventId };
+
+      if (isStandard) {
+        window.fbq('track', eventName, fbqParams, fbqOptions);
+      } else {
+        window.fbq('trackCustom', eventName, fbqParams, fbqOptions);
+      }
+
+      log('BrowserPixel: synced', eventName, 'eventID:', eventId);
+    },
+  };
+
+  // ══════════════════════════════════════════════════════════════
   // ── PUBLIC API
   // ══════════════════════════════════════════════════════════════
 
@@ -1253,6 +1365,7 @@
 
       config = {
         ...config, ...options,
+        browserPixel: { ...config.browserPixel, ...(options.browserPixel || {}) },
         cookieKeeper: { ...config.cookieKeeper, ...(options.cookieKeeper || {}) },
         adBlockRecovery: { ...config.adBlockRecovery, ...(options.adBlockRecovery || {}) },
         advancedMatching: { ...config.advancedMatching, ...(options.advancedMatching || {}) },
@@ -1261,6 +1374,7 @@
       initialized = true;
       log('Initialized v' + VERSION);
 
+      BrowserPixel.init();
       CookieKeeper.init();
       AdvancedMatching.init();
 
@@ -1314,6 +1428,9 @@
 
         log('Track:', eventName, '→', pixelId, `(match: ${matchScore})`);
         enqueueEvent(event);
+
+        // Sync to browser pixel with same eventID for deduplication
+        BrowserPixel.trackEvent(eventName, event.event_id, customData, pixelId);
       }
 
       return eventId;
