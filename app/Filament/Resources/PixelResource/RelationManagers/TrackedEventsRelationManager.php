@@ -166,9 +166,9 @@ class TrackedEventsRelationManager extends RelationManager
                         Section::make('Custom Data')
                             ->schema([
                                 Infolists\Components\TextEntry::make('custom_data')
-                                    ->formatStateUsing(fn (?array $state): string => $state
+                                    ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                         ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-                                        : 'None')
+                                        : ($state !== null ? (string) $state : 'None'))
                                     ->fontFamily('mono')
                                     ->columnSpanFull(),
                             ])
@@ -177,9 +177,9 @@ class TrackedEventsRelationManager extends RelationManager
                         Section::make('Meta Response')
                             ->schema([
                                 Infolists\Components\TextEntry::make('meta_response')
-                                    ->formatStateUsing(fn (?array $state): string => $state
+                                    ->formatStateUsing(fn (mixed $state): string => is_array($state)
                                         ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-                                        : 'No response')
+                                        : ($state !== null ? (string) $state : 'No response'))
                                     ->fontFamily('mono')
                                     ->columnSpanFull(),
                             ])
