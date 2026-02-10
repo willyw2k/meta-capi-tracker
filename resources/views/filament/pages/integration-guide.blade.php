@@ -8,8 +8,7 @@
             <div class="prose dark:prose-invert max-w-none">
                 <p>Add this snippet before the closing <code>&lt;/body&gt;</code> tag on every page you want to track:</p>
 
-                <x-filament::code-block language="html">
-&lt;script src="{{ url('/api/v1/track.js') }}"&gt;&lt;/script&gt;
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">&lt;script src="{{ url('/api/v1/track.js') }}"&gt;&lt;/script&gt;
 &lt;script&gt;
     MetaTracker.init({
         endpoint: '{{ url('/api/v1/track/event') }}',
@@ -19,8 +18,7 @@
         cookieKeeper: { enabled: true },
         adBlockRecovery: { enabled: true, proxyPath: '/collect' }
     });
-&lt;/script&gt;
-                </x-filament::code-block>
+&lt;/script&gt;</code></pre>
 
                 <p>That's it! The tracker will automatically send <strong>PageView</strong> events and capture form submissions for Advanced Matching.</p>
             </div>
@@ -32,8 +30,7 @@
 
             <div class="prose dark:prose-invert max-w-none">
                 <h4>Standard Events</h4>
-                <x-filament::code-block language="javascript">
-// Purchase
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">// Purchase
 MetaTracker.trackPurchase(
     { value: 99.99, currency: 'USD', content_ids: ['SKU-123'] },
     { email: 'customer@example.com', phone: '+1234567890' }
@@ -46,25 +43,20 @@ MetaTracker.trackLead({ content_name: 'Newsletter Signup' });
 MetaTracker.trackAddToCart({ value: 29.99, currency: 'USD', content_ids: ['SKU-456'] });
 
 // Complete Registration
-MetaTracker.trackCompleteRegistration({ content_name: 'Free Trial' });
-                </x-filament::code-block>
+MetaTracker.trackCompleteRegistration({ content_name: 'Free Trial' });</code></pre>
 
                 <h4>Custom Events</h4>
-                <x-filament::code-block language="javascript">
-MetaTracker.track('LevelComplete', { level: 5, score: 1200 });
-                </x-filament::code-block>
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">MetaTracker.track('LevelComplete', { level: 5, score: 1200 });</code></pre>
 
                 <h4>Identifying Users</h4>
-                <x-filament::code-block language="javascript">
-// After login or form submission
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">// After login or form submission
 MetaTracker.identify({
     email: 'user@example.com',
     phone: '+1234567890',
     first_name: 'John',
     last_name: 'Doe',
     external_id: 'user_12345'
-});
-                </x-filament::code-block>
+});</code></pre>
             </div>
         </x-filament::section>
 
@@ -75,8 +67,7 @@ MetaTracker.identify({
             <div class="prose dark:prose-invert max-w-none">
                 <p>Route events to different pixels based on domain:</p>
 
-                <x-filament::code-block language="javascript">
-MetaTracker.init({
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">MetaTracker.init({
     endpoint: '{{ url('/api/v1/track/event') }}',
     apiKey: 'YOUR_API_KEY',
     pixels: [
@@ -87,8 +78,7 @@ MetaTracker.init({
 });
 
 // Or send to a specific pixel
-MetaTracker.trackToPixel('111111111', 'Purchase', { value: 49.99 });
-                </x-filament::code-block>
+MetaTracker.trackToPixel('111111111', 'Purchase', { value: 49.99 });</code></pre>
             </div>
         </x-filament::section>
 
@@ -156,8 +146,7 @@ MetaTracker.trackToPixel('111111111', 'Purchase', { value: 49.99 });
             <div class="prose dark:prose-invert max-w-none">
                 <p>Send events directly from your backend:</p>
 
-                <x-filament::code-block language="php">
-use Illuminate\Support\Facades\Http;
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">use Illuminate\Support\Facades\Http;
 
 $response = Http::withHeaders([
     'X-API-Key' => config('meta-capi.api_key'),
@@ -178,8 +167,7 @@ $response = Http::withHeaders([
         'currency' => 'USD',
         'content_ids' => ['SKU-123'],
     ],
-]);
-                </x-filament::code-block>
+]);</code></pre>
             </div>
         </x-filament::section>
 
@@ -189,8 +177,7 @@ $response = Http::withHeaders([
 
             <div class="prose dark:prose-invert max-w-none">
                 <h4>Browser Console</h4>
-                <x-filament::code-block language="javascript">
-// Check tracker status
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">// Check tracker status
 MetaTracker.getDebugInfo();
 
 // Check match quality
@@ -200,8 +187,7 @@ await MetaTracker.getMatchQuality();
 MetaTracker.isAdBlocked();
 
 // Check current transport
-MetaTracker.getTransport(); // 'fetch', 'beacon', 'image', or 'proxy'
-                </x-filament::code-block>
+MetaTracker.getTransport(); // 'fetch', 'beacon', 'image', or 'proxy'</code></pre>
 
                 <h4>Test Event Mode</h4>
                 <p>Set a <strong>Test Event Code</strong> on your Pixel configuration to send events to Meta's Test Events tab in Events Manager. This lets you validate events without affecting production data.</p>
