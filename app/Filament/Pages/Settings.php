@@ -23,7 +23,7 @@ class Settings extends Page
 
     protected static ?int $navigationSort = 10;
 
-    // protected string $view = 'filament.pages.settings';
+    protected string $view = 'filament.pages.settings';
 
     public ?array $data = [];
 
@@ -179,7 +179,6 @@ class Settings extends Page
             ->footer([
                 Actions::make($this->getFormActions())
                     ->alignment($this->getFormActionsAlignment())
-                    ->fullWidth($this->hasFullWidthFormActions())
                     ->sticky($this->areFormActionsSticky())
                     ->key('form-actions'),
             ]);
