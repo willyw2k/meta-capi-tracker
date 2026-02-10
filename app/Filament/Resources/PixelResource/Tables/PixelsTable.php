@@ -8,6 +8,7 @@ use App\Models\Pixel;
 use Filament\Actions;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class PixelsTable
@@ -75,9 +76,7 @@ class PixelsTable
             ])
             ->recordActions([
                 Actions\ActionGroup::make([
-                    Actions\ViewAction::make(),
                     Actions\EditAction::make(),
-
                     Actions\Action::make('toggle_active')
                         ->label(fn (Pixel $record): string => $record->is_active ? 'Deactivate' : 'Activate')
                         ->icon(fn (Pixel $record): string => $record->is_active ? 'heroicon-o-pause' : 'heroicon-o-play')
@@ -96,7 +95,7 @@ class PixelsTable
                     Actions\DeleteAction::make(),
                 ]),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 Actions\BulkActionGroup::make([
                     Actions\DeleteBulkAction::make(),
 
