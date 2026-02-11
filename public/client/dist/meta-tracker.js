@@ -40,6 +40,7 @@ var MetaTrackerBundle = (() => {
     hashPii: true,
     respectDnt: false,
     batchEvents: true,
+    minMatchQuality: 60,
     cookieKeeper: { enabled: true, refreshInterval: 864e5, maxAge: 180, cookieNames: ["_fbp", "_fbc", "_mt_id"] },
     adBlockRecovery: { enabled: true, proxyPath: "/collect", useBeacon: true, useImage: true, customEndpoints: [] },
     browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
@@ -1249,6 +1250,7 @@ var MetaTrackerBundle = (() => {
       const enrichedUserData = config.advancedMatching.enabled ? await AdvancedMatching.buildUserData(userData) : await AdvancedMatching.normalizeAndHash(userData);
       const matchScore = AdvancedMatching.scoreMatchQuality(enrichedUserData);
       log(`Match quality: ${matchScore}/100`);
+      if (matchScore < config.minMatchQuality) { warn(`Match quality ${matchScore} below threshold ${config.minMatchQuality}, skipping event`); return void 0; }
       const pixelIds = options.pixel_id ? [options.pixel_id] : PixelRouter.resolve();
       if (!pixelIds.length) {
         warn("No pixel for:", window.location.hostname);

@@ -11,7 +11,7 @@ export const BATCH_INTERVAL = 2000;
 export let config: TrackerConfig = {
   endpoint: '', apiKey: '', pixelId: '', pixels: [],
   autoPageView: true, debug: false, hashPii: true,
-  respectDnt: false, batchEvents: true,
+  respectDnt: false, batchEvents: true, minMatchQuality: 60,
   browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
   consent: { enabled: false, mode: 'opt-in', consentCategory: 'C0004', waitForConsent: true, defaultConsent: false },
   cookieKeeper: { enabled: true, refreshInterval: 86_400_000, maxAge: 180, cookieNames: ['_fbp', '_fbc', '_mt_id'] },
