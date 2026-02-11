@@ -258,7 +258,7 @@ declare global {
     batchEvents: true,
     minMatchQuality: 60,
     browserPixel: {
-      enabled: false,
+      enabled: true,
       autoPageView: true,
       syncEvents: true,
     },

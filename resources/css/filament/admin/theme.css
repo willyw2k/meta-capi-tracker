@@ -2,6 +2,8 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
+@source '../../../../vendor/ralphjsmit/laravel-filament-pulse/resources/**/*.blade.php';
+@source '../../../../vendor/laravel/pulse/resources/**/*.blade.php';
 
 .fi-fo-builder {
     --row-gap: calc(var(--spacing) * 12);
