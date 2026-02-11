@@ -1,7 +1,7 @@
 /**
  * Transport Layer — fetch → beacon → XHR → image fallback chain.
  */
-import { AdBlockRecovery } from './ad-block-recovery';
+import { AdBlockRecovery } from '@/types/ad-block-recovery';
 import {
   config, adBlockDetected, transportMethod, setTransportMethod,
   log, warn, RETRY_DELAYS,

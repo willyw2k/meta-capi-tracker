@@ -1,7 +1,7 @@
 /**
  * Shared mutable state — centralised to avoid circular imports.
  */
-import type { TrackerConfig, TrackingEvent } from './types';
+import type { TrackerConfig, TrackingEvent } from '@/types/types';
 
 export const VERSION = '2.1.0';
 export const MAX_QUEUE_SIZE = 50;

@@ -10,14 +10,14 @@
  *   6. Meta tags / structured data
  */
 
-import { config, log } from './state';
-import { sha256, isHashed, getFromStorage } from './utils';
-import { CookieKeeper } from './cookie-keeper';
+import { config, log } from '@/types/state';
+import { sha256, isHashed, getFromStorage } from '@/types/utils';
+import { CookieKeeper } from '@/types/cookie-keeper';
 import type {
   MetaPiiField, CaptureSource, CapturedData,
   HashedUserData, RawUserData, FieldPatterns, Normalizer,
   AdvancedMatchingDiagnostics,
-} from './types';
+} from '@/types/types';
 
 // ── Module state ─────────────────────────────────────────────
 
