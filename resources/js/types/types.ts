@@ -34,7 +34,7 @@ export interface AdvancedMatchingConfig {
 export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
-  respectDnt: boolean; batchEvents: boolean;
+  respectDnt: boolean; batchEvents: boolean; minMatchQuality: number;
   browserPixel: BrowserPixelConfig; consent: ConsentConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
   advancedMatching: AdvancedMatchingConfig;
@@ -94,7 +94,7 @@ export interface MatchQualityResult { score: number; fields: string[]; }
 
 export interface AdvancedMatchingDiagnostics {
   capturedFields: number;
-  fields: Record<string, { source: string; hasValue: boolean; isHashed: boolean }>;
+  fields: Record<string, { source: CaptureSource; hasValue: boolean; isHashed: boolean }>;
   storedIdentity: Record<string, boolean>;
 }
 
@@ -138,11 +138,5 @@ export interface MetaTrackerAPI {
   addUserData(data: RawUserData, source?: CaptureSource): void;
 }
 
-declare global {
-  interface Window {
-    MetaTracker: MetaTrackerAPI;
-    MetaTrackerQueue?: Array<[string, ...unknown[]]>;
-    doNotTrack?: string;
-    [key: string]: unknown;
-  }
-}
+// Note: Window.MetaTracker is declared in meta-tracker.ts to avoid
+// duplicate declaration conflicts when both files are compiled together.
