@@ -7,14 +7,16 @@ namespace App\Models;
 use App\Enums\EventStatus;
 use App\Enums\MetaActionSource;
 use App\Enums\MetaEventName;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class TrackedEvent extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, Prunable;
 
     protected $fillable = [
         'pixel_id',
@@ -102,5 +104,15 @@ final class TrackedEvent extends Model
         $this->update([
             'status' => EventStatus::Duplicate,
         ]);
+    }
+
+    /**
+     * Get the prunable model query.
+     *
+     * @return Builder
+     */
+    public function prunable(): Builder
+    {
+        return static::where('created_at', '<=', now()->minus(days: 1));
     }
 }
