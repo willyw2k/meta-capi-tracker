@@ -9,6 +9,8 @@ use App\Data\MetaUserData;
 use App\Data\TrackEventDto;
 use App\Enums\MetaActionSource;
 use App\Enums\MetaEventName;
+use App\Services\MetaCapi\Exceptions\MetaCapiException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Maps a GTM Server-Side Container event payload to a TrackEventDto.
@@ -48,6 +50,14 @@ final readonly class MapGtmEventAction
 
     public function __invoke(array $payload, string $pixelId): TrackEventDto
     {
+        if (empty($payload)) {
+            throw MetaCapiException::invalidPayload('GTM event payload is empty.');
+        }
+
+        if (empty($pixelId)) {
+            throw MetaCapiException::invalidPayload('Pixel ID is required for GTM events.');
+        }
+
         $eventName = $payload['event_name'] ?? $payload['event'] ?? 'page_view';
 
         // Resolve Meta event
@@ -107,6 +117,16 @@ final readonly class MapGtmEventAction
     {
         $userData = $payload['user_data'] ?? [];
 
+        if (! is_array($userData)) {
+            $userData = [];
+        }
+
+        // Pre-extract address (may be array or object — normalize to array)
+        $address = $userData['address'] ?? [];
+        if (! is_array($address)) {
+            $address = [];
+        }
+
         // GTM server-side also puts user properties at top level
         $raw = [
             'em' => $userData['email_address'] ?? $userData['email'] ?? $userData['em'] ?? $payload['user_email'] ?? null,
@@ -115,10 +135,10 @@ final readonly class MapGtmEventAction
             'ln' => $userData['last_name'] ?? $userData['ln'] ?? null,
             'ge' => $userData['gender'] ?? $userData['ge'] ?? null,
             'db' => $userData['date_of_birth'] ?? $userData['db'] ?? null,
-            'ct' => $userData['city'] ?? $userData['ct'] ?? $userData['address']->city ?? null,
-            'st' => $userData['region'] ?? $userData['state'] ?? $userData['st'] ?? $userData['address']->region ?? null,
-            'zp' => $userData['postal_code'] ?? $userData['zip'] ?? $userData['zp'] ?? $userData['address']->postal_code ?? null,
-            'country' => $userData['country'] ?? $userData['country_code'] ?? $userData['address']->country ?? null,
+            'ct' => $userData['city'] ?? $userData['ct'] ?? $address['city'] ?? null,
+            'st' => $userData['region'] ?? $userData['state'] ?? $userData['st'] ?? $address['region'] ?? $address['state'] ?? null,
+            'zp' => $userData['postal_code'] ?? $userData['zip'] ?? $userData['zp'] ?? $address['postal_code'] ?? $address['zip'] ?? null,
+            'country' => $userData['country'] ?? $userData['country_code'] ?? $address['country'] ?? $address['country_code'] ?? null,
             'external_id' => $userData['external_id'] ?? $payload['user_id'] ?? $payload['client_id'] ?? null,
             'client_ip_address' => $payload['ip_override'] ?? $payload['ip_address'] ?? $payload['client_ip'] ?? null,
             'client_user_agent' => $payload['user_agent'] ?? null,
@@ -126,24 +146,15 @@ final readonly class MapGtmEventAction
             'fbp' => $payload['fbp'] ?? $userData['fbp'] ?? null,
         ];
 
-        // Handle nested address object (if it's an array rather than an object)
-        if (isset($userData['address']) && is_array($userData['address'])) {
-            $address = $userData['address'];
-            $raw['ct'] = $raw['ct'] ?? $address['city'] ?? null;
-            $raw['st'] = $raw['st'] ?? $address['region'] ?? $address['state'] ?? null;
-            $raw['zp'] = $raw['zp'] ?? $address['postal_code'] ?? $address['zip'] ?? null;
-            $raw['country'] = $raw['country'] ?? $address['country'] ?? $address['country_code'] ?? null;
-        }
-
         return MetaUserData::fromRaw(array_filter($raw));
     }
 
     private function buildCustomData(string $eventName, array $payload): ?MetaCustomData
     {
-        $ecommerce = $payload['ecommerce'] ?? $payload['items'] ?? null;
+        $ecommerce = $payload['ecommerce'] ?? null;
         $items = [];
 
-        if (is_array($ecommerce) && isset($ecommerce['items'])) {
+        if (is_array($ecommerce) && isset($ecommerce['items']) && is_array($ecommerce['items'])) {
             $items = $ecommerce['items'];
         } elseif (isset($payload['items']) && is_array($payload['items'])) {
             $items = $payload['items'];
@@ -154,6 +165,10 @@ final readonly class MapGtmEventAction
         $numItems = 0;
 
         foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
             $itemId = $item['item_id'] ?? $item['id'] ?? $item['item_name'] ?? '';
             if ($itemId) {
                 $contentIds[] = (string) $itemId;
@@ -167,8 +182,9 @@ final readonly class MapGtmEventAction
             $numItems += $qty;
         }
 
-        $value = $payload['value'] ?? $payload['revenue'] ?? $ecommerce['value'] ?? null;
-        $currency = $payload['currency'] ?? $ecommerce['currency'] ?? null;
+        $ecomArray = is_array($ecommerce) ? $ecommerce : [];
+        $value = $payload['value'] ?? $payload['revenue'] ?? $ecomArray['value'] ?? null;
+        $currency = $payload['currency'] ?? $ecomArray['currency'] ?? null;
 
         // If no value and we have items, sum item prices
         if ($value === null && $contents) {
@@ -180,8 +196,9 @@ final readonly class MapGtmEventAction
             }
         }
 
-        $hasData = $value !== null || $currency || $contentIds || $payload['search_term'] ?? null
-            || $payload['transaction_id'] ?? null;
+        $hasData = $value !== null || $currency || $contentIds
+            || ($payload['search_term'] ?? null)
+            || ($payload['transaction_id'] ?? null);
 
         if (! $hasData) {
             return null;

@@ -86,16 +86,31 @@ final readonly class DisguisedTrackController
                     'success' => false,
                     'error' => $e->getMessage(),
                 ];
+            } catch (\Throwable $e) {
+                $results[] = [
+                    'index' => $index,
+                    'success' => false,
+                    'error' => 'Internal error processing event.',
+                ];
+
+                Log::error('DisguisedTrackController: unexpected error', [
+                    'index' => $index,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 
         $successCount = collect($results)->where('success', true)->count();
+        $rejectedCount = count($results) - $successCount;
+        $statusCode = $successCount === 0 && $rejectedCount > 0 ? 422
+            : ($rejectedCount > 0 ? 207 : 202);
 
         return response()->json([
-            'success' => true,
+            'success' => $successCount > 0,
             'accepted' => $successCount,
             'results' => $results,
-        ], 202);
+        ], $statusCode);
     }
 
     /**

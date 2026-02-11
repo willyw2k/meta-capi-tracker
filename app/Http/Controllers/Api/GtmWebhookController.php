@@ -72,6 +72,12 @@ final readonly class GtmWebhookController
 
         foreach ($events as $index => $eventPayload) {
             if (! is_array($eventPayload)) {
+                $errors[] = [
+                    'index' => $index,
+                    'event_name' => 'unknown',
+                    'error' => 'Invalid event entry — expected an object.',
+                ];
+
                 continue;
             }
 
@@ -107,6 +113,19 @@ final readonly class GtmWebhookController
                     'index' => $index,
                     'event_name' => $eventPayload['event_name'] ?? 'unknown',
                     'error' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'index' => $index,
+                    'event_name' => $eventPayload['event_name'] ?? $eventPayload['event'] ?? 'unknown',
+                    'error' => 'Internal error processing event.',
+                ];
+
+                Log::error('GTM webhook unexpected error', [
+                    'index' => $index,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile() . ':' . $e->getLine(),
                 ]);
             }
         }

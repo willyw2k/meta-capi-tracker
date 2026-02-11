@@ -162,40 +162,52 @@ export const GtmIntegration = {
     if (!config.gtm.enabled) return;
     if (_initialized) return;
 
-    log('GTM: initializing dataLayer bridge');
+    try {
+      log('GTM: initializing dataLayer bridge');
 
-    const dlKey = config.gtm.dataLayerKey || 'dataLayer';
-    const dl = window[dlKey] as unknown[] | undefined;
+      const dlKey = config.gtm.dataLayerKey || 'dataLayer';
+      const dl = window[dlKey] as unknown[] | undefined;
 
-    if (!Array.isArray(dl)) {
-      // Create dataLayer if it doesn't exist
-      (window as Record<string, unknown>)[dlKey] = [];
-      log('GTM: created', dlKey);
-    }
-
-    const dataLayer = (window as Record<string, unknown>)[dlKey] as unknown[];
-
-    // Process existing entries
-    if (config.gtm.autoMapEcommerce) {
-      for (const entry of dataLayer) {
-        this._processEntry(entry);
+      if (!Array.isArray(dl)) {
+        // Create dataLayer if it doesn't exist
+        (window as Record<string, unknown>)[dlKey] = [];
+        log('GTM: created', dlKey);
       }
-    }
 
-    // Intercept future pushes
-    _originalPush = dataLayer.push.bind(dataLayer);
-    dataLayer.push = (...args: unknown[]): number => {
-      const result = _originalPush!(...args);
+      const dataLayer = (window as Record<string, unknown>)[dlKey] as unknown[];
+
+      // Process existing entries
       if (config.gtm.autoMapEcommerce) {
-        for (const entry of args) {
-          this._processEntry(entry);
+        for (const entry of dataLayer) {
+          try {
+            this._processEntry(entry);
+          } catch (err) {
+            warn('GTM: error processing existing dataLayer entry', err);
+          }
         }
       }
-      return result;
-    };
 
-    _initialized = true;
-    log('GTM: dataLayer bridge active');
+      // Intercept future pushes
+      _originalPush = dataLayer.push.bind(dataLayer);
+      dataLayer.push = (...args: unknown[]): number => {
+        const result = _originalPush!(...args);
+        if (config.gtm.autoMapEcommerce) {
+          for (const entry of args) {
+            try {
+              this._processEntry(entry);
+            } catch (err) {
+              warn('GTM: error processing dataLayer push', err);
+            }
+          }
+        }
+        return result;
+      };
+
+      _initialized = true;
+      log('GTM: dataLayer bridge active');
+    } catch (err) {
+      warn('GTM: failed to initialize dataLayer bridge', err);
+    }
   },
 
   /**
@@ -208,24 +220,33 @@ export const GtmIntegration = {
     const event = obj.event as string | undefined;
     if (!event || typeof event !== 'string') return;
 
-    // Skip internal GTM events
+    // Skip internal GTM events and our own events to prevent loops
     if (event.startsWith('gtm.')) return;
+    if (obj._source === 'meta-capi-tracker') return;
 
     // Resolve Meta event name
     const metaEvent = this._resolveEventName(event);
     if (!metaEvent) return;
 
-    // Extract ecommerce data
-    const ecommerce = obj.ecommerce as GA4EcommerceData | undefined;
-    const customData = extractCustomData(event, ecommerce, obj);
-    const userData = extractUserData(obj);
+    // Extract ecommerce and user data with defensive error handling
+    let customData: CustomData = {};
+    let userData: RawUserData = {};
+
+    try {
+      const ecommerce = obj.ecommerce as GA4EcommerceData | undefined;
+      customData = extractCustomData(event, ecommerce, obj);
+      userData = extractUserData(obj);
+    } catch (err) {
+      warn('GTM: error extracting data from dataLayer entry', event, err);
+      return;
+    }
 
     log('GTM: mapping', event, '→', metaEvent);
 
     // Fire MetaTracker event (without re-pushing to dataLayer to avoid loops)
     if (window.MetaTracker && typeof window.MetaTracker.track === 'function') {
-      window.MetaTracker.track(metaEvent, customData, userData).catch(() => {
-        warn('GTM: failed to track mapped event', metaEvent);
+      window.MetaTracker.track(metaEvent, customData, userData).catch((err: unknown) => {
+        warn('GTM: failed to track mapped event', metaEvent, err);
       });
     }
   },
@@ -249,24 +270,28 @@ export const GtmIntegration = {
    * Push an event to the GTM dataLayer.
    */
   pushToDataLayer(event: string, data: Record<string, unknown> = {}): void {
-    const dlKey = config.gtm.dataLayerKey || 'dataLayer';
-    const dl = window[dlKey] as unknown[] | undefined;
+    try {
+      const dlKey = config.gtm.dataLayerKey || 'dataLayer';
+      const dl = window[dlKey] as unknown[] | undefined;
 
-    if (!Array.isArray(dl)) {
-      warn('GTM: dataLayer not found, cannot push event');
-      return;
+      if (!Array.isArray(dl)) {
+        warn('GTM: dataLayer not found, cannot push event');
+        return;
+      }
+
+      // Use the original push to avoid our interceptor re-processing this event
+      const pushFn = _originalPush ?? dl.push.bind(dl);
+
+      pushFn({
+        event,
+        ...data,
+        _source: 'meta-capi-tracker',
+      });
+
+      log('GTM: pushed to dataLayer:', event);
+    } catch (err) {
+      warn('GTM: error pushing to dataLayer', event, err);
     }
-
-    // Use the original push to avoid our interceptor re-processing this event
-    const pushFn = _originalPush ?? dl.push.bind(dl);
-
-    pushFn({
-      event,
-      ...data,
-      _source: 'meta-capi-tracker',
-    });
-
-    log('GTM: pushed to dataLayer:', event);
   },
 
   /**
@@ -275,11 +300,15 @@ export const GtmIntegration = {
   notifyDataLayer(eventName: string, eventId: string | undefined, customData: CustomData = {}): void {
     if (!config.gtm.enabled || !config.gtm.pushToDataLayer) return;
 
-    this.pushToDataLayer('meta_capi_event', {
-      meta_event_name: eventName,
-      meta_event_id: eventId,
-      meta_custom_data: customData,
-    });
+    try {
+      this.pushToDataLayer('meta_capi_event', {
+        meta_event_name: eventName,
+        meta_event_id: eventId,
+        meta_custom_data: customData,
+      });
+    } catch (err) {
+      warn('GTM: error notifying dataLayer', eventName, err);
+    }
   },
 
   isInitialized(): boolean {

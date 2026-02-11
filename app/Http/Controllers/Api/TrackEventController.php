@@ -8,6 +8,7 @@ use App\Actions\MetaCapi\TrackEventAction;
 use App\Http\Requests\TrackEventRequest;
 use App\Services\MetaCapi\Exceptions\MetaCapiException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 final readonly class TrackEventController
 {
@@ -31,6 +32,17 @@ final readonly class TrackEventController
                 'success' => false,
                 'error' => $e->getMessage(),
             ], $statusCode);
+        } catch (\Throwable $e) {
+            Log::error('TrackEventController: unexpected error', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'An internal error occurred while processing the event.',
+            ], 500);
         }
     }
 }
