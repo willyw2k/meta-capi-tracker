@@ -1,0 +1,627 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-02-11 00:00:00",
+  "containerVersion": {
+    "path": "accounts/0/containers/0/versions/0",
+    "tagManagerUrl": "https://tagmanager.google.com",
+    "tag": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "100",
+        "name": "Meta CAPI - Initialization",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script src=\"{{Const - Meta CAPI Server URL}}/api/v1/track.js\"></script>\n<script>\n  MetaTracker.init({\n    endpoint: '{{Const - Meta CAPI Server URL}}/api/v1/track',\n    apiKey: '{{Const - Meta CAPI API Key}}',\n    pixelId: '{{Const - Meta Pixel ID}}',\n    autoPageView: true,\n    debug: {{Debug Mode}},\n    gtm: {\n      enabled: true,\n      autoMapEcommerce: true,\n      pushToDataLayer: true,\n    },\n    advancedMatching: {\n      enabled: true,\n      autoCaptureForms: true,\n      captureDataLayer: true,\n    },\n    cookieKeeper: { enabled: true },\n    adBlockRecovery: { enabled: true },\n  });\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["200"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "monitoringMetadata": {
+          "type": "MAP"
+        },
+        "consentSettings": {
+          "consentStatus": "NOT_SET"
+        },
+        "notes": "Loads the Meta CAPI Tracker script and initializes with GTM DataLayer bridge. Auto-maps GA4 ecommerce events to Meta CAPI events.\n\nREQUIRED: Update the three Constant variables:\n- Const - Meta CAPI Server URL\n- Const - Meta CAPI API Key\n- Const - Meta Pixel ID"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "101",
+        "name": "Meta CAPI - Purchase",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackPurchase({\n      value: Number({{DLV - ecommerce.value}}) || 0,\n      currency: {{DLV - ecommerce.currency}} || 'USD',\n      content_ids: {{DLV - ecommerce.content_ids}} || [],\n      content_type: 'product',\n      order_id: {{DLV - ecommerce.transaction_id}} || '',\n      num_items: Number({{DLV - ecommerce.num_items}}) || undefined,\n    }, {\n      em: {{DLV - user.email}} || undefined,\n      ph: {{DLV - user.phone}} || undefined,\n      fn: {{DLV - user.first_name}} || undefined,\n      ln: {{DLV - user.last_name}} || undefined,\n      external_id: {{DLV - user.id}} || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["201"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires a Purchase event to Meta CAPI. Uses ecommerce and user data layer variables.\n\nNote: If gtm.autoMapEcommerce is enabled in the init tag, GA4 purchase events are mapped automatically. This tag is for manual control or custom data."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "102",
+        "name": "Meta CAPI - Lead",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackLead({\n      value: Number({{DLV - lead.value}}) || 0,\n      currency: 'USD',\n      content_name: {{DLV - lead.form_name}} || undefined,\n    }, {\n      em: {{DLV - user.email}} || undefined,\n      ph: {{DLV - user.phone}} || undefined,\n      fn: {{DLV - user.first_name}} || undefined,\n      ln: {{DLV - user.last_name}} || undefined,\n      external_id: {{DLV - user.id}} || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["202"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires a Lead event to Meta CAPI on form submissions."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "103",
+        "name": "Meta CAPI - ViewContent",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackViewContent({\n      content_name: {{DLV - ecommerce.item_name}} || undefined,\n      content_ids: {{DLV - ecommerce.content_ids}} || [],\n      content_type: 'product',\n      value: Number({{DLV - ecommerce.value}}) || undefined,\n      currency: {{DLV - ecommerce.currency}} || 'USD',\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["203"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires a ViewContent event to Meta CAPI on product page views."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "104",
+        "name": "Meta CAPI - AddToCart",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackAddToCart({\n      content_ids: {{DLV - ecommerce.content_ids}} || [],\n      content_name: {{DLV - ecommerce.item_name}} || undefined,\n      content_type: 'product',\n      value: Number({{DLV - ecommerce.value}}) || undefined,\n      currency: {{DLV - ecommerce.currency}} || 'USD',\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["204"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires an AddToCart event to Meta CAPI."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "105",
+        "name": "Meta CAPI - InitiateCheckout",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackInitiateCheckout({\n      value: Number({{DLV - ecommerce.value}}) || undefined,\n      currency: {{DLV - ecommerce.currency}} || 'USD',\n      num_items: Number({{DLV - ecommerce.num_items}}) || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["205"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires an InitiateCheckout event to Meta CAPI."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "106",
+        "name": "Meta CAPI - CompleteRegistration",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackCompleteRegistration({\n      content_name: {{DLV - registration.method}} || 'Website',\n    }, {\n      em: {{DLV - user.email}} || undefined,\n      ph: {{DLV - user.phone}} || undefined,\n      fn: {{DLV - user.first_name}} || undefined,\n      ln: {{DLV - user.last_name}} || undefined,\n      external_id: {{DLV - user.id}} || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["206"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires a CompleteRegistration event to Meta CAPI."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "107",
+        "name": "Meta CAPI - Search",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.track) {\n    MetaTracker.trackSearch({\n      search_string: {{DLV - search.term}} || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["207"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Fires a Search event to Meta CAPI."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "108",
+        "name": "Meta CAPI - Identify User",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n  if (typeof MetaTracker !== 'undefined' && MetaTracker.identify) {\n    MetaTracker.identify({\n      em: {{DLV - user.email}} || undefined,\n      ph: {{DLV - user.phone}} || undefined,\n      fn: {{DLV - user.first_name}} || undefined,\n      ln: {{DLV - user.last_name}} || undefined,\n      external_id: {{DLV - user.id}} || undefined,\n    });\n  }\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["208"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "priority": {
+          "type": "INTEGER",
+          "value": "-1"
+        },
+        "notes": "Identifies the user for Advanced Matching. Fire this after login or when user data becomes available."
+      }
+    ],
+    "trigger": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "200",
+        "name": "All Pages",
+        "type": "PAGEVIEW",
+        "notes": "Fires on every page load. Used for MetaTracker initialization."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "201",
+        "name": "CE - purchase",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "purchase" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'purchase' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "202",
+        "name": "CE - generate_lead",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "generate_lead" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'generate_lead' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "203",
+        "name": "CE - view_item",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "view_item" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'view_item' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "204",
+        "name": "CE - add_to_cart",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "add_to_cart" }
+            ]
+          }
+        ],
+        "notes": "Fires when an 'add_to_cart' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "205",
+        "name": "CE - begin_checkout",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "begin_checkout" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'begin_checkout' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "206",
+        "name": "CE - sign_up",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "sign_up" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'sign_up' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "207",
+        "name": "CE - search",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "search" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'search' event is pushed to the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "208",
+        "name": "CE - user_login",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              { "type": "TEMPLATE", "key": "arg0", "value": "{{_event}}" },
+              { "type": "TEMPLATE", "key": "arg1", "value": "login" }
+            ]
+          }
+        ],
+        "notes": "Fires when a 'login' event is pushed to the dataLayer. Used to identify the user for Advanced Matching."
+      }
+    ],
+    "variable": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "300",
+        "name": "Const - Meta CAPI Server URL",
+        "type": "c",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "value",
+            "value": "https://your-tracking-server.com"
+          }
+        ],
+        "notes": "REQUIRED: Replace with your Meta CAPI Tracker server URL (no trailing slash).\nExample: https://track.yourdomain.com"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "301",
+        "name": "Const - Meta CAPI API Key",
+        "type": "c",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "value",
+            "value": "YOUR_TRACKING_API_KEY"
+          }
+        ],
+        "notes": "REQUIRED: Replace with your TRACKING_API_KEY from the .env file."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "302",
+        "name": "Const - Meta Pixel ID",
+        "type": "c",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "value",
+            "value": "YOUR_META_PIXEL_ID"
+          }
+        ],
+        "notes": "REQUIRED: Replace with your Meta Pixel ID from Events Manager."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "310",
+        "name": "DLV - ecommerce.value",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.value" }
+        ],
+        "notes": "Reads ecommerce.value from the dataLayer (GA4 ecommerce)."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "311",
+        "name": "DLV - ecommerce.currency",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.currency" }
+        ],
+        "notes": "Reads ecommerce.currency from the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "312",
+        "name": "DLV - ecommerce.transaction_id",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.transaction_id" }
+        ],
+        "notes": "Reads ecommerce.transaction_id from the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "313",
+        "name": "DLV - ecommerce.content_ids",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.items" }
+        ],
+        "notes": "Reads ecommerce.items from the dataLayer. Map to content_ids in the tag."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "314",
+        "name": "DLV - ecommerce.item_name",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.items.0.item_name" }
+        ],
+        "notes": "Reads the first item name from ecommerce.items."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "315",
+        "name": "DLV - ecommerce.num_items",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "ecommerce.items.length" }
+        ],
+        "notes": "Number of items in the ecommerce.items array."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "320",
+        "name": "DLV - user.email",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "user.email" }
+        ],
+        "notes": "Reads user.email from the dataLayer. Adjust the path to match your dataLayer structure."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "321",
+        "name": "DLV - user.phone",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "user.phone" }
+        ],
+        "notes": "Reads user.phone from the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "322",
+        "name": "DLV - user.first_name",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "user.first_name" }
+        ],
+        "notes": "Reads user.first_name from the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "323",
+        "name": "DLV - user.last_name",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "user.last_name" }
+        ],
+        "notes": "Reads user.last_name from the dataLayer."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "324",
+        "name": "DLV - user.id",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "user.id" }
+        ],
+        "notes": "Reads user.id from the dataLayer. Used as external_id for Advanced Matching."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "330",
+        "name": "DLV - lead.value",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "lead_value" }
+        ],
+        "notes": "Reads lead_value from the dataLayer for Lead events."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "331",
+        "name": "DLV - lead.form_name",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "form_name" }
+        ],
+        "notes": "Reads form_name from the dataLayer for Lead events."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "332",
+        "name": "DLV - search.term",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "search_term" }
+        ],
+        "notes": "Reads search_term from the dataLayer for Search events."
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "333",
+        "name": "DLV - registration.method",
+        "type": "v",
+        "parameter": [
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" },
+          { "type": "TEMPLATE", "key": "name", "value": "method" }
+        ],
+        "notes": "Reads method from the dataLayer for sign_up events."
+      }
+    ],
+    "folder": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "folderId": "1",
+        "name": "Meta CAPI Tracker"
+      }
+    ]
+  }
+}

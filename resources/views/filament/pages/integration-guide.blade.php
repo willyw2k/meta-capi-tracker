@@ -150,8 +150,20 @@ MetaTracker.trackToPixel('111111111', 'Purchase', { value: 49.99 });</code></pre
             <x-slot name="description">Use MetaTracker as a Custom HTML tag in GTM with automatic GA4 ecommerce event mapping.</x-slot>
 
             <div class="prose dark:prose-invert max-w-none">
+                <h4>Quick Import (Recommended)</h4>
+                <p>Download the pre-built GTM container and import it directly:</p>
+                <ol>
+                    <li>Download <a href="{{ url('/client/gtm-container.json') }}" class="font-semibold">gtm-container.json</a></li>
+                    <li>In GTM, go to <strong>Admin &rarr; Import Container</strong></li>
+                    <li>Choose the file and select <strong>Merge &rarr; Rename conflicting</strong></li>
+                    <li>Update the three <code>Const -</code> variables with your server URL, API key, and Pixel ID</li>
+                    <li>Adjust the <code>DLV -</code> data layer variables to match your site's dataLayer structure</li>
+                    <li>Preview and publish</li>
+                </ol>
+                <p>The container includes: initialization tag, 7 event tags (Purchase, Lead, ViewContent, AddToCart, InitiateCheckout, CompleteRegistration, Search), an Identify User tag, all triggers, and all required variables.</p>
+
                 <h4>Step 1: Initialization Tag (trigger: All Pages)</h4>
-                <p>Create a Custom HTML tag in GTM with the following code:</p>
+                <p>Or create a Custom HTML tag in GTM manually with the following code:</p>
 
                 <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">&lt;script src="{{ url('/api/v1/track.js') }}"&gt;&lt;/script&gt;
 &lt;script&gt;
