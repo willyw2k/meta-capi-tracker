@@ -46,17 +46,26 @@ final readonly class TrackEventAction
 
         // Score match quality for monitoring
         $matchScore = $this->scorer->quickScore($dto->user_data);
+        $minQuality = (int) config('meta-capi.min_match_quality', 20);
 
-        if ($matchScore < 20) {
-            Log::warning('Low match quality event', [
+        $trackedEvent = $this->createTrackedEvent($pixel, $dto, $matchScore);
+
+        // Only dispatch to Meta when match quality meets the threshold.
+        // Low-quality events waste API quota and hurt EMQ scores.
+        if ($matchScore < $minQuality) {
+            $trackedEvent->markAsSkipped(
+                "Match quality {$matchScore} below minimum threshold {$minQuality}"
+            );
+
+            Log::info('Event skipped — low match quality', [
                 'pixel_id' => $pixel->pixel_id,
                 'event_name' => $dto->resolvedEventName(),
                 'match_score' => $matchScore,
-                'recommendation' => 'Enable Advanced Matching to improve match rate.',
+                'min_required' => $minQuality,
             ]);
-        }
 
-        $trackedEvent = $this->createTrackedEvent($pixel, $dto, $matchScore);
+            return $trackedEvent;
+        }
 
         SendMetaEventJob::dispatch($trackedEvent->id);
 

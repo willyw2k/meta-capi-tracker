@@ -79,6 +79,7 @@ class TrackedEventsTable
                         EventStatus::Pending => 'warning',
                         EventStatus::Failed => 'danger',
                         EventStatus::Duplicate => 'gray',
+                        EventStatus::Skipped => 'info',
                     })
                     ->sortable(),
 

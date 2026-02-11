@@ -106,6 +106,14 @@ final class TrackedEvent extends Model
         ]);
     }
 
+    public function markAsSkipped(string $reason): void
+    {
+        $this->update([
+            'status' => EventStatus::Skipped,
+            'error_message' => $reason,
+        ]);
+    }
+
     /**
      * Get the prunable model query.
      *

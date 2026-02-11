@@ -66,6 +66,7 @@ class RecentEventsTable extends BaseWidget
                         EventStatus::Pending => 'warning',
                         EventStatus::Failed => 'danger',
                         EventStatus::Duplicate => 'gray',
+                        EventStatus::Skipped => 'info',
                     }),
 
                 Tables\Columns\TextColumn::make('created_at')

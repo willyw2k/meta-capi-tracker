@@ -44,9 +44,12 @@ class TrackingStatsOverview extends BaseWidget
             ->count();
         $sentRate = $totalLast7 > 0 ? round(($sentLast7 / $totalLast7) * 100, 1) : 0;
 
-        // Failed events
+        // Failed / skipped events
         $failedCount = TrackedEvent::where('status', EventStatus::Failed)->count();
         $pendingCount = TrackedEvent::where('status', EventStatus::Pending)->count();
+        $skippedLast7 = TrackedEvent::where('created_at', '>=', $last7)
+            ->where('status', EventStatus::Skipped)
+            ->count();
 
         // Match quality avg
         $avgMatchQuality = MatchQualityLog::where('event_date', '>=', $last7)
@@ -107,7 +110,10 @@ class TrackingStatsOverview extends BaseWidget
                 ->color('primary'),
 
             Stat::make('Failed / Pending', "{$failedCount} / {$pendingCount}")
-                ->description($failedCount > 0 ? 'Attention needed' : 'All clear')
+                ->description(
+                    ($failedCount > 0 ? 'Attention needed' : 'All clear')
+                    . ($skippedLast7 > 0 ? " ({$skippedLast7} skipped 7d)" : '')
+                )
                 ->descriptionIcon($failedCount > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
                 ->color($failedCount > 0 ? 'danger' : 'success'),
 

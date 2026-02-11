@@ -57,15 +57,23 @@ class EventsChart extends ChartWidget
             ->groupBy('period')
             ->pluck('total', 'period');
 
+        $skippedQuery = TrackedEvent::where('created_at', '>=', $from)
+            ->where('status', EventStatus::Skipped)
+            ->selectRaw("{$groupFormat} as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->pluck('total', 'period');
+
         $sentData = [];
         $failedData = [];
         $pendingData = [];
+        $skippedData = [];
         $displayLabels = [];
 
         foreach ($labels as $key => $label) {
             $sentData[] = $sentQuery[$key] ?? 0;
             $failedData[] = $failedQuery[$key] ?? 0;
             $pendingData[] = $pendingQuery[$key] ?? 0;
+            $skippedData[] = $skippedQuery[$key] ?? 0;
             $displayLabels[] = $label;
         }
 
@@ -90,6 +98,13 @@ class EventsChart extends ChartWidget
                     'data' => $pendingData,
                     'borderColor' => '#f59e0b',
                     'backgroundColor' => 'rgba(245, 158, 11, 0.1)',
+                    'fill' => true,
+                ],
+                [
+                    'label' => 'Skipped (Low Quality)',
+                    'data' => $skippedData,
+                    'borderColor' => '#6366f1',
+                    'backgroundColor' => 'rgba(99, 102, 241, 0.1)',
                     'fill' => true,
                 ],
             ],

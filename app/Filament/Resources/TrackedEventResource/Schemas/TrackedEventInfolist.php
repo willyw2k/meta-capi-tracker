@@ -60,6 +60,7 @@ class TrackedEventInfolist
                                 EventStatus::Pending => 'warning',
                                 EventStatus::Failed => 'danger',
                                 EventStatus::Duplicate => 'gray',
+                                EventStatus::Skipped => 'info',
                             }),
                         Infolists\Components\TextEntry::make('attempts'),
                         Infolists\Components\TextEntry::make('sent_at')

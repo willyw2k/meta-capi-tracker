@@ -42,6 +42,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Minimum Match Quality
+    |--------------------------------------------------------------------------
+    |
+    | Events scoring below this threshold are stored but NOT sent to Meta.
+    | Low-quality events waste API quota and hurt your Event Match Quality
+    | score in Events Manager. Set to 0 to send all events.
+    |
+    | Score guide: 0-20 poor, 21-40 fair, 41-60 good, 61-80 great, 81+ excellent
+    |
+    */
+
+    'min_match_quality' => (int) env('TRACKING_MIN_MATCH_QUALITY', 20),
+
+    /*
+    |--------------------------------------------------------------------------
     | Batch Processing
     |--------------------------------------------------------------------------
     */
