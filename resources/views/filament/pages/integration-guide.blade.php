@@ -131,11 +131,171 @@ MetaTracker.trackToPixel('111111111', 'Purchase', { value: 49.99 });</code></pre
                             <td><code>/collect/event</code></td>
                             <td>Disguised endpoint (ad blocker recovery)</td>
                         </tr>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td><code>/api/v1/track/gtm</code></td>
+                            <td>GTM Server-Side webhook</td>
+                        </tr>
                     </tbody>
                 </table>
 
                 <h4>Authentication</h4>
                 <p>All tracking endpoints require the <code>X-API-Key</code> header matching your <code>TRACKING_API_KEY</code> environment variable.</p>
+            </div>
+        </x-filament::section>
+
+        {{-- Google Tag Manager (Client-Side) --}}
+        <x-filament::section icon="heroicon-o-tag" collapsible collapsed>
+            <x-slot name="heading">Google Tag Manager (Client-Side)</x-slot>
+            <x-slot name="description">Use MetaTracker as a Custom HTML tag in GTM with automatic GA4 ecommerce event mapping.</x-slot>
+
+            <div class="prose dark:prose-invert max-w-none">
+                <h4>Step 1: Initialization Tag (trigger: All Pages)</h4>
+                <p>Create a Custom HTML tag in GTM with the following code:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">&lt;script src="{{ url('/api/v1/track.js') }}"&gt;&lt;/script&gt;
+&lt;script&gt;
+    MetaTracker.init({
+        endpoint: '{{ url('/api/v1/track') }}',
+        apiKey: 'YOUR_API_KEY',
+        pixelId: 'YOUR_PIXEL_ID',
+        autoPageView: true,
+        gtm: {
+            enabled: true,
+            autoMapEcommerce: true,  // Auto-map GA4 events
+            pushToDataLayer: true,   // Push results back to dataLayer
+        },
+        advancedMatching: {
+            enabled: true,
+            autoCaptureForms: true,
+            captureDataLayer: true,
+        },
+    });
+&lt;/script&gt;</code></pre>
+
+                <h4>Step 2: Automatic GA4 Event Mapping</h4>
+                <p>When <code>gtm.autoMapEcommerce</code> is enabled, GA4 ecommerce events pushed to the dataLayer are automatically mapped to Meta CAPI events:</p>
+
+                <table>
+                    <thead>
+                        <tr><th>GA4 Event</th><th>Meta CAPI Event</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>page_view</code></td><td>PageView</td></tr>
+                        <tr><td><code>view_item</code> / <code>view_item_list</code></td><td>ViewContent</td></tr>
+                        <tr><td><code>add_to_cart</code></td><td>AddToCart</td></tr>
+                        <tr><td><code>add_to_wishlist</code></td><td>AddToWishlist</td></tr>
+                        <tr><td><code>begin_checkout</code></td><td>InitiateCheckout</td></tr>
+                        <tr><td><code>add_payment_info</code></td><td>AddPaymentInfo</td></tr>
+                        <tr><td><code>purchase</code></td><td>Purchase</td></tr>
+                        <tr><td><code>sign_up</code></td><td>CompleteRegistration</td></tr>
+                        <tr><td><code>generate_lead</code></td><td>Lead</td></tr>
+                        <tr><td><code>search</code></td><td>Search</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Step 3: Custom Event Mapping</h4>
+                <p>Map custom dataLayer events to Meta CAPI events:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">MetaTracker.init({
+    // ...
+    gtm: {
+        enabled: true,
+        eventMapping: {
+            'custom_signup': 'CompleteRegistration',
+            'custom_lead': 'Lead',
+            'level_complete': 'CustomEvent',
+        },
+    },
+});</code></pre>
+
+                <h4>Step 4: Manual Event Tags (Optional)</h4>
+                <p>For events not in the dataLayer, create additional Custom HTML tags:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">&lt;!-- Purchase Tag (trigger: purchase dataLayer event) --&gt;
+&lt;script&gt;
+    MetaTracker.trackPurchase({
+        value: {<!-- -->{DLV - transaction_total}},
+        currency: {<!-- -->{DLV - currency}} || 'USD',
+        content_ids: {<!-- -->{DLV - product_ids}},
+        order_id: {<!-- -->{DLV - transaction_id}},
+    }, {
+        em: {<!-- -->{DLV - user_email}},
+        ph: {<!-- -->{DLV - user_phone}},
+        external_id: {<!-- -->{DLV - user_id}},
+    });
+&lt;/script&gt;</code></pre>
+            </div>
+        </x-filament::section>
+
+        {{-- Google Tag Manager (Server-Side) --}}
+        <x-filament::section icon="heroicon-o-server-stack" collapsible collapsed>
+            <x-slot name="heading">Google Tag Manager (Server-Side Container)</x-slot>
+            <x-slot name="description">Forward events from your GTM Server-Side container to Meta CAPI via webhook.</x-slot>
+
+            <div class="prose dark:prose-invert max-w-none">
+                <h4>Overview</h4>
+                <p>The GTM server-side webhook endpoint receives events from your GTM Server-Side Container and automatically maps GA4 event parameters to Meta CAPI format.</p>
+
+                <h4>Step 1: Enable GTM Integration</h4>
+                <p>Add these environment variables to your <code>.env</code> file:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">GTM_ENABLED=true
+GTM_WEBHOOK_SECRET=your-secret-key-here
+GTM_DEFAULT_PIXEL_ID=123456789012345</code></pre>
+
+                <h4>Step 2: Create a Custom Tag in GTM Server-Side</h4>
+                <p>In your GTM Server-Side container, create a custom tag that sends an HTTP request:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">Endpoint: {{ url('/api/v1/track/gtm') }}
+Method: POST
+Headers:
+  Content-Type: application/json
+  X-GTM-Secret: your-secret-key-here
+  X-Pixel-Id: 123456789012345  (optional, overrides default)</code></pre>
+
+                <h4>Step 3: Payload Format</h4>
+                <p>Send the standard GA4 event data. The server automatically maps fields:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">{
+    "event_name": "purchase",
+    "event_id": "evt_abc123",
+    "page_location": "https://shop.example.com/checkout",
+    "ip_override": "203.0.113.50",
+    "user_agent": "Mozilla/5.0 ...",
+    "user_data": {
+        "email_address": "customer@example.com",
+        "phone_number": "+1234567890",
+        "address": {
+            "city": "New York",
+            "region": "NY",
+            "postal_code": "10001",
+            "country": "US"
+        }
+    },
+    "items": [
+        {
+            "item_id": "SKU-123",
+            "item_name": "Product Name",
+            "price": 99.99,
+            "quantity": 1
+        }
+    ],
+    "value": 99.99,
+    "currency": "USD",
+    "transaction_id": "order_456"
+}</code></pre>
+
+                <h4>Batch Events</h4>
+                <p>Send multiple events in a single request:</p>
+
+                <pre class="fi-code-block rounded-lg bg-gray-950 p-4 overflow-x-auto"><code class="text-sm text-white font-mono">{
+    "pixel_id": "123456789012345",
+    "events": [
+        { "event_name": "page_view", "page_location": "..." },
+        { "event_name": "purchase", "value": 99.99, ... }
+    ]
+}</code></pre>
             </div>
         </x-filament::section>
 

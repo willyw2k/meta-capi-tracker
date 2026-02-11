@@ -25,6 +25,7 @@ import { PixelRouter } from './pixel-router';
 import { AdvancedMatching } from './advanced-matching';
 import { BrowserPixel } from './browser-pixel';
 import { ConsentManager } from './consent-manager';
+import { GtmIntegration } from './gtm';
 import type {
   TrackerInitOptions, MetaEventName, CustomData, RawUserData,
   TrackOptions, TrackingEvent, MetaTrackerAPI, CaptureSource,
@@ -76,6 +77,7 @@ const MetaTracker: MetaTrackerAPI = {
     CookieKeeper.init();
     AdvancedMatching.init();
     BrowserPixel.init();
+    GtmIntegration.init();
 
     if (config.adBlockRecovery.enabled) {
       AdBlockRecovery.detect().then((blocked: boolean) => { if (blocked) log('Ad blocker recovery: ACTIVE'); });
@@ -129,6 +131,8 @@ const MetaTracker: MetaTrackerAPI = {
       enqueueEvent(event);
       BrowserPixel.trackEvent(eventName, event.event_id, customData);
     }
+
+    GtmIntegration.notifyDataLayer(eventName, eventId, customData);
 
     return eventId;
   },
@@ -228,6 +232,12 @@ const MetaTracker: MetaTrackerAPI = {
   addUserData(data: RawUserData, source: CaptureSource = 'explicit'): void {
     AdvancedMatching._mergeCapture(source, data);
   },
+
+  // ── GTM Integration ───────────────────────────────────────
+
+  pushToDataLayer(event: string, data: Record<string, unknown> = {}): void {
+    GtmIntegration.pushToDataLayer(event, data);
+  },
 };
 
 // ── Expose globally ──────────────────────────────────────────
@@ -249,5 +259,6 @@ export type {
   TrackerConfig, TrackerInitOptions, MetaEventName, MetaStandardEvent,
   CustomData, RawUserData, HashedUserData, TrackOptions, TrackingEvent,
   MetaTrackerAPI, PixelConfig, CookieKeeperConfig, AdBlockRecoveryConfig,
-  AdvancedMatchingConfig, BrowserPixelConfig, ConsentConfig, CaptureSource, MatchQualityResult, DebugInfo,
+  AdvancedMatchingConfig, BrowserPixelConfig, ConsentConfig, GtmConfig,
+  CaptureSource, MatchQualityResult, DebugInfo,
 } from './types';

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CookieSyncController;
 use App\Http\Controllers\Api\DisguisedTrackController;
 use App\Http\Controllers\Api\MatchQualityController;
 use App\Http\Controllers\Api\PixelGifController;
+use App\Http\Controllers\Api\GtmWebhookController;
 use App\Http\Controllers\Api\TrackEventController;
 use App\Http\Middleware\HandleTrackingCors;
 use App\Http\Middleware\ValidateTrackingApiKey;
@@ -89,3 +90,22 @@ Route::middleware([HandleTrackingCors::class])
         Route::get('/pixel.gif', PixelGifController::class)
             ->name('tracking.disguised.pixel-gif');
     });
+
+/*
+|--------------------------------------------------------------------------
+| GTM Server-Side Container Webhook
+|--------------------------------------------------------------------------
+|
+| Receives events from Google Tag Manager Server-Side containers.
+| Automatically maps GA4 event format to Meta CAPI events.
+|
+| Auth: X-GTM-Secret header (configured via GTM_WEBHOOK_SECRET env var).
+| Pixel: X-Pixel-Id header, pixel_id in payload, or GTM_DEFAULT_PIXEL_ID.
+|
+*/
+
+Route::prefix('v1')->group(function () {
+    Route::post('/track/gtm', GtmWebhookController::class)
+        ->middleware([HandleTrackingCors::class])
+        ->name('tracking.gtm-webhook');
+});

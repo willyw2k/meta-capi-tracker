@@ -109,4 +109,33 @@ return [
         'log_match_quality' => true,
         'profile_retention_days' => (int) env('TRACKING_PROFILE_RETENTION', 365),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Tag Manager Integration
+    |--------------------------------------------------------------------------
+    |
+    | Server-side GTM container webhook support. When enabled, the
+    | /api/v1/track/gtm endpoint accepts events from GTM server-side
+    | containers and maps GA4 events to Meta CAPI events automatically.
+    |
+    */
+
+    'gtm' => [
+        'enabled' => (bool) env('GTM_ENABLED', false),
+        'webhook_secret' => env('GTM_WEBHOOK_SECRET'),
+        'default_pixel_id' => env('GTM_DEFAULT_PIXEL_ID'),
+        'event_mapping' => array_filter(
+            explode(',', env('GTM_EVENT_MAPPING', ''))
+        ) ? collect(explode(',', env('GTM_EVENT_MAPPING', '')))
+            ->mapWithKeys(function ($pair) {
+                $parts = explode(':', $pair, 2);
+
+                return count($parts) === 2
+                    ? [trim($parts[0]) => trim($parts[1])]
+                    : [];
+            })
+            ->filter()
+            ->all() : [],
+    ],
 ];

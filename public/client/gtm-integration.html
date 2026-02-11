@@ -1,33 +1,109 @@
 /**
- * Meta CAPI Tracker - GTM Custom HTML Tag
- * ========================================
- * Use this as a Custom HTML tag in Google Tag Manager
- * to integrate with your Meta CAPI tracking server.
+ * Meta CAPI Tracker - GTM Integration Guide
+ * ==========================================
+ *
+ * Two integration methods:
+ *
+ * METHOD 1: Automatic GA4 Event Mapping (Recommended)
+ *   - Enable gtm.autoMapEcommerce in the init config
+ *   - GA4 ecommerce events pushed to dataLayer are auto-mapped
+ *   - No additional tags needed for standard events
+ *
+ * METHOD 2: Manual Custom HTML Tags
+ *   - Create individual Custom HTML tags per event
+ *   - Full control over what data is sent
+ *   - Use for custom events or override auto-mapping
  *
  * Setup:
- * 1. Create a Custom HTML tag in GTM
- * 2. Paste this code
- * 3. Set trigger to "All Pages" for initialization
- * 4. Create additional tags per event with appropriate triggers
+ *   1. Create a Custom HTML tag in GTM
+ *   2. Paste the initialization code below
+ *   3. Set trigger to "All Pages"
+ *   4. Optionally create additional tags for manual events
  */
 
-<!-- Tag 1: Initialization (trigger: All Pages) -->
+<!-- ================================================================ -->
+<!-- METHOD 1: Automatic GA4 Mapping (Recommended)                    -->
+<!-- ================================================================ -->
+
+<!-- Tag: MetaTracker Init with GTM Bridge (trigger: All Pages) -->
 <script src="https://your-server.com/api/v1/track.js"></script>
 <script>
   MetaTracker.init({
     endpoint: 'https://your-server.com/api/v1/track',
-    apiKey:   '{{Constant - Tracking API Key}}',  // GTM Variable
-    pixelId:  '{{Constant - Meta Pixel ID}}',     // GTM Variable
+    apiKey:   '{{Constant - Tracking API Key}}',  // GTM Constant Variable
+    pixelId:  '{{Constant - Meta Pixel ID}}',     // GTM Constant Variable
     autoPageView: true,
     debug: {{Debug Mode}},  // GTM built-in variable
+
+    // Enable GTM DataLayer bridge — GA4 events auto-map to Meta CAPI
+    gtm: {
+      enabled: true,
+      autoMapEcommerce: true,   // Auto-map: purchase → Purchase, add_to_cart → AddToCart, etc.
+      pushToDataLayer: true,    // Push meta_capi_event back to dataLayer for other tags
+      eventMapping: {
+        // Add custom mappings here (dataLayer event → Meta event)
+        // 'custom_signup': 'CompleteRegistration',
+        // 'custom_lead': 'Lead',
+      },
+    },
+
+    advancedMatching: {
+      enabled: true,
+      autoCaptureForms: true,
+      captureDataLayer: true,   // Capture user data from dataLayer
+    },
+    cookieKeeper: { enabled: true },
+    adBlockRecovery: { enabled: true },
   });
 </script>
 
-<!-- Tag 2: Purchase Event (trigger: purchase dataLayer event) -->
+<!--
+  With autoMapEcommerce enabled, these GA4 dataLayer pushes are
+  automatically mapped — no extra tags needed:
+
+  dataLayer.push({ event: 'view_item', ecommerce: { items: [...] } });
+    → MetaTracker.track('ViewContent', ...)
+
+  dataLayer.push({ event: 'add_to_cart', ecommerce: { items: [...] } });
+    → MetaTracker.track('AddToCart', ...)
+
+  dataLayer.push({ event: 'purchase', ecommerce: { value: 99.99, ... } });
+    → MetaTracker.track('Purchase', ...)
+
+  Full mapping table:
+    page_view         → PageView
+    view_item         → ViewContent
+    view_item_list    → ViewContent
+    add_to_cart       → AddToCart
+    add_to_wishlist   → AddToWishlist
+    begin_checkout    → InitiateCheckout
+    add_payment_info  → AddPaymentInfo
+    purchase          → Purchase
+    sign_up           → CompleteRegistration
+    generate_lead     → Lead
+    search            → Search
+-->
+
+
+<!-- ================================================================ -->
+<!-- METHOD 2: Manual Custom HTML Tags                                -->
+<!-- ================================================================ -->
+
+<!-- Tag: MetaTracker Init (trigger: All Pages) -->
+<script src="https://your-server.com/api/v1/track.js"></script>
+<script>
+  MetaTracker.init({
+    endpoint: 'https://your-server.com/api/v1/track',
+    apiKey:   '{{Constant - Tracking API Key}}',
+    pixelId:  '{{Constant - Meta Pixel ID}}',
+    autoPageView: true,
+    debug: {{Debug Mode}},
+  });
+</script>
+
+<!-- Tag: Purchase Event (trigger: purchase dataLayer event) -->
 <script>
   (function() {
-    var dl = {{dataLayer}};  // Or use specific GTM variables
-
     MetaTracker.trackPurchase({
       value:        {{DLV - transaction_total}},
       currency:     {{DLV - currency}} || 'USD',
@@ -43,7 +119,7 @@
   })();
 </script>
 
-<!-- Tag 3: Lead Event (trigger: form submission) -->
+<!-- Tag: Lead Event (trigger: form submission) -->
 <script>
   (function() {
     MetaTracker.trackLead({
@@ -59,7 +135,7 @@
   })();
 </script>
 
-<!-- Tag 4: ViewContent (trigger: product page view) -->
+<!-- Tag: ViewContent (trigger: product page view) -->
 <script>
   (function() {
     MetaTracker.trackViewContent({
@@ -70,4 +146,58 @@
       currency:     {{DLV - currency}} || 'USD',
     });
   })();
+</script>
+
+<!-- Tag: AddToCart (trigger: add_to_cart dataLayer event) -->
+<script>
+  (function() {
+    MetaTracker.trackAddToCart({
+      content_ids:  [{{DLV - product_id}}],
+      content_name: {{DLV - product_name}},
+      content_type: 'product',
+      value:        {{DLV - product_price}},
+      currency:     {{DLV - currency}} || 'USD',
+    });
+  })();
+</script>
+
+<!-- Tag: InitiateCheckout (trigger: begin_checkout dataLayer event) -->
+<script>
+  (function() {
+    MetaTracker.trackInitiateCheckout({
+      value:    {{DLV - cart_total}},
+      currency: {{DLV - currency}} || 'USD',
+      num_items: {{DLV - cart_item_count}},
+    });
+  })();
+</script>
+
+<!-- Tag: CompleteRegistration (trigger: sign_up dataLayer event) -->
+<script>
+  (function() {
+    MetaTracker.trackCompleteRegistration({
+      content_name: {{DLV - registration_method}} || 'Website',
+    }, {
+      em: {{DLV - user_email}},
+      fn: {{DLV - user_first_name}},
+      ln: {{DLV - user_last_name}},
+      external_id: {{DLV - user_id}},
+    });
+  })();
+</script>
+
+<!-- Tag: Search (trigger: search dataLayer event) -->
+<script>
+  (function() {
+    MetaTracker.trackSearch({
+      search_string: {{DLV - search_term}},
+    });
+  })();
+</script>
+
+<!-- Tag: Push custom data to dataLayer for other GTM tags -->
+<script>
+  // After any event, the GTM bridge pushes 'meta_capi_event' to dataLayer:
+  // { event: 'meta_capi_event', meta_event_name: 'Purchase', meta_event_id: '...', ... }
+  // You can use this as a trigger for other GTM tags (e.g., logging, analytics).
 </script>
