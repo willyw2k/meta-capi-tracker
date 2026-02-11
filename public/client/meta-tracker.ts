@@ -1675,7 +1675,7 @@ declare global {
         AdBlockRecovery.detect().then(b => { if (b) log('Ad blocker recovery: ACTIVE'); });
       }
 
-      if (config.autoPageView) this.trackPageView();
+      if (config.autoPageView) await this.trackPageView();
 
       window.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') flushQueue();

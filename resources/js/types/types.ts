@@ -34,7 +34,7 @@ export interface AdvancedMatchingConfig {
 export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
-  respectDnt: boolean; batchEvents: boolean;
+  respectDnt: boolean; batchEvents: boolean; minMatchQuality: number;
   browserPixel: BrowserPixelConfig; consent: ConsentConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
   advancedMatching: AdvancedMatchingConfig;
