@@ -31,6 +31,18 @@ export interface AdvancedMatchingConfig {
   formFieldMap: Record<string, MetaPiiField>; dataLayerKey: string; userDataKey: string | null;
 }
 
+export interface GtmConfig {
+  enabled: boolean;
+  /** Auto-map GA4 ecommerce dataLayer events to Meta CAPI events */
+  autoMapEcommerce: boolean;
+  /** Push MetaTracker events back to the dataLayer for other GTM tags */
+  pushToDataLayer: boolean;
+  /** The dataLayer variable name (default: 'dataLayer') */
+  dataLayerKey: string;
+  /** Custom event mapping overrides: dataLayer event name → Meta event name */
+  eventMapping: Record<string, string>;
+}
+
 export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
@@ -94,7 +106,7 @@ export interface MatchQualityResult { score: number; fields: string[]; }
 
 export interface AdvancedMatchingDiagnostics {
   capturedFields: number;
-  fields: Record<string, { source: CaptureSource; hasValue: boolean; isHashed: boolean }>;
+  fields: Record<string, { source: string; hasValue: boolean; isHashed: boolean }>;
   storedIdentity: Record<string, boolean>;
 }
 
@@ -138,5 +150,11 @@ export interface MetaTrackerAPI {
   addUserData(data: RawUserData, source?: CaptureSource): void;
 }
 
-// Note: Window.MetaTracker is declared in meta-tracker.ts to avoid
-// duplicate declaration conflicts when both files are compiled together.
+declare global {
+  interface Window {
+    MetaTracker: MetaTrackerAPI;
+    MetaTrackerQueue?: Array<[string, ...unknown[]]>;
+    doNotTrack?: string;
+    [key: string]: unknown;
+  }
+}

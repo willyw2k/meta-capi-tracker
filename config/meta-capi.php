@@ -53,7 +53,7 @@ return [
     |
     */
 
-    'min_match_quality' => (int) env('TRACKING_MIN_MATCH_QUALITY', 20),
+    'min_match_quality' => (int) env('TRACKING_MIN_MATCH_QUALITY', 50),
 
     /*
     |--------------------------------------------------------------------------

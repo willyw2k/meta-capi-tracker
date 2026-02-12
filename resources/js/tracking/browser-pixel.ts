@@ -1,8 +1,8 @@
 /**
  * BrowserPixel — Auto-load Meta fbevents.js and sync events for deduplication.
  */
-import { config, log, warn } from '@/types/state';
-import { PixelRouter } from '@/types/pixel-router';
+import { config, log, warn } from '@/tracking/state';
+import { PixelRouter } from '@/tracking/pixel-router';
 
 const STANDARD_EVENTS = [
   'PageView', 'ViewContent', 'AddToCart', 'AddPaymentInfo',

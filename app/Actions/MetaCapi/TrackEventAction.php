@@ -46,7 +46,7 @@ final readonly class TrackEventAction
 
         // Score match quality for monitoring
         $matchScore = $this->scorer->quickScore($dto->user_data);
-        $minQuality = (int) config('meta-capi.min_match_quality', 20);
+        $minQuality = (int) config('meta-capi.min_match_quality', 50);
 
         $trackedEvent = $this->createTrackedEvent($pixel, $dto, $matchScore);
 
