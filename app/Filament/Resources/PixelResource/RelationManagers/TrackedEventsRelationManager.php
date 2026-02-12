@@ -76,6 +76,7 @@ class TrackedEventsRelationManager extends RelationManager
                         EventStatus::Pending => 'warning',
                         EventStatus::Failed => 'danger',
                         EventStatus::Duplicate => 'gray',
+                        EventStatus::Skipped => 'info',
                     })
                     ->sortable(),
 

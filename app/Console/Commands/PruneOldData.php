@@ -71,6 +71,19 @@ class PruneOldData extends Command
 
         $this->info("  Duplicate events older than {$sentRetention}d: {$dupCount} " . ($dryRun ? '(would delete)' : 'deleted'));
 
+        // Prune skipped events (same as failed retention)
+        $skippedCount = TrackedEvent::where('status', EventStatus::Skipped)
+            ->where('created_at', '<', $failedCutoff)
+            ->count();
+
+        if (! $dryRun && $skippedCount > 0) {
+            TrackedEvent::where('status', EventStatus::Skipped)
+                ->where('created_at', '<', $failedCutoff)
+                ->delete();
+        }
+
+        $this->info("  Skipped events older than {$failedRetention}d: {$skippedCount} " . ($dryRun ? '(would delete)' : 'deleted'));
+
         // Prune match quality logs
         $logsCutoff = Carbon::now()->subDays($sentRetention);
         $logsCount = MatchQualityLog::where('event_date', '<', $logsCutoff)->count();
@@ -91,7 +104,7 @@ class PruneOldData extends Command
 
         $this->info("  User profiles not seen in {$profileRetention}d: {$profileCount} " . ($dryRun ? '(would delete)' : 'deleted'));
 
-        $total = $sentCount + $failedCount + $dupCount + $logsCount + $profileCount;
+        $total = $sentCount + $failedCount + $dupCount + $skippedCount + $logsCount + $profileCount;
         $this->newLine();
         $this->info("Total: {$total} records " . ($dryRun ? 'would be pruned' : 'pruned') . '.');
 

@@ -13,6 +13,7 @@ use App\Enums\MetaEventName;
 use App\Services\MetaCapi\Exceptions\MetaCapiException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final readonly class BatchTrackController
 {
@@ -68,17 +69,35 @@ final readonly class BatchTrackController
                     'success' => false,
                     'error' => $e->getMessage(),
                 ];
+            } catch (\Throwable $e) {
+                $results[] = [
+                    'index' => $index,
+                    'success' => false,
+                    'error' => 'Internal error processing event.',
+                ];
+
+                Log::error('BatchTrackController: unexpected error', [
+                    'index' => $index,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile() . ':' . $e->getLine(),
+                ]);
             }
         }
 
         $successCount = collect($results)->where('success', true)->count();
+        $rejectedCount = count($results) - $successCount;
+
+        // Return 207 Multi-Status if some events failed, 422 if all failed
+        $statusCode = $successCount === 0 && $rejectedCount > 0 ? 422
+            : ($rejectedCount > 0 ? 207 : 202);
 
         return response()->json([
-            'success' => true,
+            'success' => $successCount > 0,
             'total' => count($results),
             'accepted' => $successCount,
-            'rejected' => count($results) - $successCount,
+            'rejected' => $rejectedCount,
             'results' => $results,
-        ], 202);
+        ], $statusCode);
     }
 }

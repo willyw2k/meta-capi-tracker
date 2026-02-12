@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 final class SendMetaEventJob implements ShouldQueue
 {
@@ -32,6 +33,10 @@ final class SendMetaEventJob implements ShouldQueue
         $event = TrackedEvent::with('pixel')->find($this->trackedEventId);
 
         if (! $event) {
+            Log::warning('SendMetaEventJob: event not found, skipping', [
+                'tracked_event_id' => $this->trackedEventId,
+            ]);
+
             return;
         }
 
@@ -40,7 +45,50 @@ final class SendMetaEventJob implements ShouldQueue
             return;
         }
 
-        $action($event);
+        try {
+            $action($event);
+        } catch (MetaCapiException $e) {
+            // Non-retryable errors should fail immediately instead of wasting retries
+            if (! $e->isRetryable()) {
+                Log::warning('SendMetaEventJob: non-retryable error, failing permanently', [
+                    'tracked_event_id' => $this->trackedEventId,
+                    'error' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                ]);
+
+                $event->markAsFailed(
+                    error: $e->getMessage(),
+                    response: $e->metaResponse,
+                );
+
+                $this->fail($e);
+
+                return;
+            }
+
+            // Retryable error — increment attempts and let the queue retry
+            $event->increment('attempts');
+
+            Log::info('SendMetaEventJob: retryable error, will retry', [
+                'tracked_event_id' => $this->trackedEventId,
+                'attempt' => $this->attempts(),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        } catch (\Throwable $e) {
+            // Unexpected errors — log with full context and let queue retry
+            Log::error('SendMetaEventJob: unexpected error', [
+                'tracked_event_id' => $this->trackedEventId,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+
+            $event->increment('attempts');
+
+            throw $e;
+        }
     }
 
     public function middleware(): array
@@ -60,5 +108,11 @@ final class SendMetaEventJob implements ShouldQueue
                 response: $exception instanceof MetaCapiException ? $exception->metaResponse : null,
             );
         }
+
+        Log::error('SendMetaEventJob: permanently failed', [
+            'tracked_event_id' => $this->trackedEventId,
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+        ]);
     }
 }

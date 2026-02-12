@@ -42,6 +42,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Minimum Match Quality
+    |--------------------------------------------------------------------------
+    |
+    | Events scoring below this threshold are stored but NOT sent to Meta.
+    | Low-quality events waste API quota and hurt your Event Match Quality
+    | score in Events Manager. Set to 0 to send all events.
+    |
+    | Score guide: 0-20 poor, 21-40 fair, 41-60 good, 61-80 great, 81+ excellent
+    |
+    */
+
+    'min_match_quality' => (int) env('TRACKING_MIN_MATCH_QUALITY', 20),
+
+    /*
+    |--------------------------------------------------------------------------
     | Batch Processing
     |--------------------------------------------------------------------------
     */
@@ -108,5 +123,34 @@ return [
         'infer_country_from_phone' => true,
         'log_match_quality' => true,
         'profile_retention_days' => (int) env('TRACKING_PROFILE_RETENTION', 365),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Tag Manager Integration
+    |--------------------------------------------------------------------------
+    |
+    | Server-side GTM container webhook support. When enabled, the
+    | /api/v1/track/gtm endpoint accepts events from GTM server-side
+    | containers and maps GA4 events to Meta CAPI events automatically.
+    |
+    */
+
+    'gtm' => [
+        'enabled' => (bool) env('GTM_ENABLED', false),
+        'webhook_secret' => env('GTM_WEBHOOK_SECRET'),
+        'default_pixel_id' => env('GTM_DEFAULT_PIXEL_ID'),
+        'event_mapping' => array_filter(
+            explode(',', env('GTM_EVENT_MAPPING', ''))
+        ) ? collect(explode(',', env('GTM_EVENT_MAPPING', '')))
+            ->mapWithKeys(function ($pair) {
+                $parts = explode(':', $pair, 2);
+
+                return count($parts) === 2
+                    ? [trim($parts[0]) => trim($parts[1])]
+                    : [];
+            })
+            ->filter()
+            ->all() : [],
     ],
 ];

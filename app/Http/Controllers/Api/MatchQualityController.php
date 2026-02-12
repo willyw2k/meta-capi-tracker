@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\MatchQualityLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Match Quality Analytics Controller
@@ -20,6 +21,24 @@ final readonly class MatchQualityController
      * GET /api/v1/track/match-quality?pixel_id=xxx&days=30
      */
     public function __invoke(Request $request): JsonResponse
+    {
+        try {
+            return $this->buildResponse($request);
+        } catch (\Throwable $e) {
+            Log::error('MatchQualityController: error building analytics', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve match quality analytics.',
+            ], 500);
+        }
+    }
+
+    private function buildResponse(Request $request): JsonResponse
     {
         $pixelId = $request->query('pixel_id');
         $days = min((int) $request->query('days', 30), 90);

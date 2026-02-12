@@ -79,18 +79,24 @@ final readonly class SendEventToMetaAction
 
             return $response;
         } catch (MetaCapiException $e) {
-            $event->markAsFailed(
-                error: $e->getMessage(),
-                response: $e->metaResponse,
-            );
-
             Log::error('Meta CAPI exception', [
+                'event_id' => $event->event_id,
+                'pixel_id' => $pixel->pixel_id,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'retryable' => $e->isRetryable(),
+            ]);
+
+            throw $e;
+        } catch (\Saloon\Exceptions\Request\RequestException|\Illuminate\Http\Client\ConnectionException $e) {
+            // Network / connection errors — retryable
+            Log::warning('Meta CAPI connection error', [
                 'event_id' => $event->event_id,
                 'pixel_id' => $pixel->pixel_id,
                 'error' => $e->getMessage(),
             ]);
 
-            throw $e;
+            throw MetaCapiException::connectionFailed($e->getMessage(), $e);
         }
     }
 

@@ -46,17 +46,26 @@ final readonly class TrackEventAction
 
         // Score match quality for monitoring
         $matchScore = $this->scorer->quickScore($dto->user_data);
+        $minQuality = (int) config('meta-capi.min_match_quality', 20);
 
-        if ($matchScore < 20) {
-            Log::warning('Low match quality event', [
+        $trackedEvent = $this->createTrackedEvent($pixel, $dto, $matchScore);
+
+        // Only dispatch to Meta when match quality meets the threshold.
+        // Low-quality events waste API quota and hurt EMQ scores.
+        if ($matchScore < $minQuality) {
+            $trackedEvent->markAsSkipped(
+                "Match quality {$matchScore} below minimum threshold {$minQuality}"
+            );
+
+            Log::info('Event skipped — low match quality', [
                 'pixel_id' => $pixel->pixel_id,
                 'event_name' => $dto->resolvedEventName(),
                 'match_score' => $matchScore,
-                'recommendation' => 'Enable Advanced Matching to improve match rate.',
+                'min_required' => $minQuality,
             ]);
-        }
 
-        $trackedEvent = $this->createTrackedEvent($pixel, $dto, $matchScore);
+            return $trackedEvent;
+        }
 
         SendMetaEventJob::dispatch($trackedEvent->id);
 
@@ -120,20 +129,33 @@ final readonly class TrackEventAction
 
     private function createTrackedEvent(Pixel $pixel, TrackEventDto $dto, ?int $matchScore = null): TrackedEvent
     {
-        return TrackedEvent::create([
-            'pixel_id' => $pixel->id,
-            'event_id' => $dto->event_id ?? Str::uuid()->toString(),
-            'event_name' => $dto->event_name,
-            'custom_event_name' => $dto->custom_event_name,
-            'action_source' => $dto->action_source,
-            'event_source_url' => $dto->event_source_url,
-            'event_time' => $dto->event_time
-                ? \Carbon\Carbon::createFromTimestamp($dto->event_time)
-                : now(),
-            'user_data' => $dto->user_data->toArray(),
-            'custom_data' => $dto->custom_data?->toArray(),
-            'match_quality' => $matchScore,
-            'status' => EventStatus::Pending,
-        ]);
+        try {
+            return TrackedEvent::create([
+                'pixel_id' => $pixel->id,
+                'event_id' => $dto->event_id ?? Str::uuid()->toString(),
+                'event_name' => $dto->event_name,
+                'custom_event_name' => $dto->custom_event_name,
+                'action_source' => $dto->action_source,
+                'event_source_url' => $dto->event_source_url,
+                'event_time' => $dto->event_time
+                    ? \Carbon\Carbon::createFromTimestamp($dto->event_time)
+                    : now(),
+                'user_data' => $dto->user_data->toArray(),
+                'custom_data' => $dto->custom_data?->toArray(),
+                'match_quality' => $matchScore,
+                'status' => EventStatus::Pending,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('TrackEventAction: failed to store event', [
+                'pixel_id' => $pixel->pixel_id,
+                'event_name' => $dto->resolvedEventName(),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new MetaCapiException(
+                "Failed to store event: database error",
+                previous: $e,
+            );
+        }
     }
 }

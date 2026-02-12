@@ -31,13 +31,25 @@ export interface AdvancedMatchingConfig {
   formFieldMap: Record<string, MetaPiiField>; dataLayerKey: string; userDataKey: string | null;
 }
 
+export interface GtmConfig {
+  enabled: boolean;
+  /** Auto-map GA4 ecommerce dataLayer events to Meta CAPI events */
+  autoMapEcommerce: boolean;
+  /** Push MetaTracker events back to the dataLayer for other GTM tags */
+  pushToDataLayer: boolean;
+  /** The dataLayer variable name (default: 'dataLayer') */
+  dataLayerKey: string;
+  /** Custom event mapping overrides: dataLayer event name → Meta event name */
+  eventMapping: Record<string, string>;
+}
+
 export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
   respectDnt: boolean; batchEvents: boolean; minMatchQuality: number;
   browserPixel: BrowserPixelConfig; consent: ConsentConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
-  advancedMatching: AdvancedMatchingConfig;
+  advancedMatching: AdvancedMatchingConfig; gtm: GtmConfig;
 }
 
 export type TrackerInitOptions = Partial<TrackerConfig> &
@@ -136,6 +148,9 @@ export interface MetaTrackerAPI {
   getDebugInfo(): DebugInfo;
   getMatchQuality(extraUserData?: RawUserData): Promise<MatchQualityResult>;
   addUserData(data: RawUserData, source?: CaptureSource): void;
+
+  /** Push a custom event to the GTM dataLayer */
+  pushToDataLayer(event: string, data?: Record<string, unknown>): void;
 }
 
 declare global {
