@@ -169,7 +169,7 @@ const MetaTracker: MetaTrackerAPI = {
     log('Identify:', Object.keys(hashed).filter(
       (k) => (hashed as Record<string, unknown>)[k] && !['client_user_agent', 'fbp', 'fbc'].includes(k),
     ));
-    CookieKeeper.syncToServer();
+    await CookieKeeper.syncToServer();
   },
 
   clearIdentity(): void {

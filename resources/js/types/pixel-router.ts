@@ -1,7 +1,7 @@
 /**
  * Pixel Router — multi-domain pixel ID resolution.
  */
-import { config } from './state';
+import { config } from '@/types/state';
 
 export const PixelRouter = {
   resolve(hostname?: string): string[] {

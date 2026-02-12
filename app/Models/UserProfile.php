@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 
 /**
  * Server-side user profile for Advanced Matching enrichment.
@@ -16,7 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class UserProfile extends Model
 {
-    use HasUuids;
+    use HasUuids, Prunable;
 
     protected $fillable = [
         'external_id', 'em', 'ph',
@@ -162,5 +164,15 @@ final class UserProfile extends Model
         }
 
         return $fields;
+    }
+
+    /**
+     * Get the prunable model query.
+     *
+     * @return Builder
+     */
+    public function prunable(): Builder
+    {
+        return static::where('created_at', '<=', now()->minus(days: 1));
     }
 }

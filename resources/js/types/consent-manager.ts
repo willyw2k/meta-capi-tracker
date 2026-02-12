@@ -7,7 +7,7 @@
  *  - Queues events while waiting for consent, flushes on grant
  *  - Manual grantConsent() / revokeConsent() / hasConsent() API
  */
-import { config, log, warn } from './state';
+import { config, log, warn } from '@/types/state';
 
 interface PendingCall {
   method: string;

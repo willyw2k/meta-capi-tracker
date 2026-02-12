@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Prunable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-
 final class MatchQualityLog extends Model
 {
+    use Prunable;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -35,5 +38,15 @@ final class MatchQualityLog extends Model
             'event_date' => 'date',
             'created_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the prunable model query.
+     *
+     * @return Builder
+     */
+    public function prunable(): Builder
+    {
+        return static::where('created_at', '<=', now()->minus(days: 1));
     }
 }

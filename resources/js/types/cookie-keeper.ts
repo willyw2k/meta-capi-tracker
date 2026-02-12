@@ -1,9 +1,9 @@
 /**
  * Cookie Keeper — ITP survival via server-side cookie renewal.
  */
-import { config, log, warn, cookieKeeperTimer, setCookieKeeperTimer } from './state';
-import { getCookie, setCookie, getFromStorage, saveToStorage, generateVisitorId } from './utils';
-import { transportSend, resolveEndpoint } from './transport';
+import { config, log, warn, cookieKeeperTimer, setCookieKeeperTimer } from '@/types/state';
+import { getCookie, setCookie, getFromStorage, saveToStorage, generateVisitorId } from '@/types/utils';
+import { transportSend, resolveEndpoint } from '@/types/transport';
 
 export const CookieKeeper = {
   init(): void {

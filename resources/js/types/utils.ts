@@ -1,7 +1,7 @@
 /**
  * Utility helpers — storage, hashing, ID generation.
  */
-import { config } from './state';
+import { config } from '@/types/state';
 
 export async function sha256(value: string): Promise<string | null> {
   if (!value) return null;
