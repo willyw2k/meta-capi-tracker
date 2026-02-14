@@ -24,6 +24,7 @@ import { AdBlockRecovery } from '@/tracking/ad-block-recovery';
 import { PixelRouter } from '@/tracking/pixel-router';
 import { AdvancedMatching } from '@/tracking/advanced-matching';
 import { BrowserPixel } from '@/tracking/browser-pixel';
+import { GtmIntegration } from '@/tracking/gtm';
 
 import type {
   TrackerInitOptions, MetaEventName, CustomData, RawUserData,
@@ -75,6 +76,7 @@ const MetaTracker: MetaTrackerAPI = {
     CookieKeeper.init();
     AdvancedMatching.init();
     BrowserPixel.init();
+    GtmIntegration.init();
 
     if (config.adBlockRecovery.enabled) {
       AdBlockRecovery.detect().then((blocked: boolean) => { if (blocked) log('Ad blocker recovery: ACTIVE'); });
@@ -127,6 +129,8 @@ const MetaTracker: MetaTrackerAPI = {
       enqueueEvent(event);
       BrowserPixel.trackEvent(eventName, event.event_id, customData);
     }
+
+    GtmIntegration.notifyDataLayer(eventName, eventId, customData);
 
     return eventId;
   },
@@ -219,7 +223,13 @@ const MetaTracker: MetaTrackerAPI = {
 
   addUserData(data: RawUserData, source: CaptureSource = 'explicit'): void {
     AdvancedMatching._mergeCapture(source, data);
-  }
+  },
+
+  // ── GTM Integration ───────────────────────────────────────
+
+  pushToDataLayer(event: string, data: Record<string, unknown> = {}): void {
+    GtmIntegration.pushToDataLayer(event, data);
+  },
 };
 
 // ── Expose globally ──────────────────────────────────────────

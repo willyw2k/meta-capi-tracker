@@ -22,7 +22,11 @@ export let config: TrackerConfig = {
     enabled: true, autoCaptureForms: true, captureUrlParams: true,
     captureDataLayer: true, captureMetaTags: true, autoIdentifyOnSubmit: true,
     formFieldMap: {}, dataLayerKey: 'dataLayer', userDataKey: null,
-  }
+  },
+  gtm: {
+    enabled: false, autoMapEcommerce: true, pushToDataLayer: true,
+    dataLayerKey: 'dataLayer', eventMapping: {},
+  },
 };
 
 export const queue: TrackingEvent[] = [];
@@ -39,6 +43,7 @@ export function mergeConfig(opts: Partial<TrackerConfig>): void {
     cookieKeeper: { ...config.cookieKeeper, ...((opts.cookieKeeper as object) ?? {}) },
     adBlockRecovery: { ...config.adBlockRecovery, ...((opts.adBlockRecovery as object) ?? {}) },
     advancedMatching: { ...config.advancedMatching, ...((opts.advancedMatching as object) ?? {}) },
+    gtm: { ...config.gtm, ...((opts.gtm as object) ?? {}) },
   });
 }
 export function setInitialized(v: boolean): void { initialized = v; }

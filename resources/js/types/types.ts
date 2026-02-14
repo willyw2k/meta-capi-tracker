@@ -45,7 +45,7 @@ export interface TrackerConfig {
   respectDnt: boolean; batchEvents: boolean; minMatchQuality: number;
   browserPixel: BrowserPixelConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
-  advancedMatching: AdvancedMatchingConfig;
+  advancedMatching: AdvancedMatchingConfig; gtm: GtmConfig;
 }
 
 export type TrackerInitOptions = Partial<TrackerConfig> &
@@ -141,6 +141,9 @@ export interface MetaTrackerAPI {
   getDebugInfo(): DebugInfo;
   getMatchQuality(extraUserData?: RawUserData): Promise<MatchQualityResult>;
   addUserData(data: RawUserData, source?: CaptureSource): void;
+
+  /** Push a custom event to the GTM dataLayer */
+  pushToDataLayer(event: string, data?: Record<string, unknown>): void;
 }
 
 declare global {
