@@ -24,7 +24,6 @@ import { AdBlockRecovery } from '@/tracking/ad-block-recovery';
 import { PixelRouter } from '@/tracking/pixel-router';
 import { AdvancedMatching } from '@/tracking/advanced-matching';
 import { BrowserPixel } from '@/tracking/browser-pixel';
-import { ConsentManager } from '@/tracking/consent-manager';
 
 import type {
   TrackerInitOptions, MetaEventName, CustomData, RawUserData,
@@ -73,7 +72,6 @@ const MetaTracker: MetaTrackerAPI = {
     setInitialized(true);
     log('Initialized v' + VERSION);
 
-    ConsentManager.init();
     CookieKeeper.init();
     AdvancedMatching.init();
     BrowserPixel.init();
@@ -94,7 +92,6 @@ const MetaTracker: MetaTrackerAPI = {
     userData: RawUserData = {}, options: TrackOptions = {},
   ): Promise<string | undefined> {
     if (!initialized) { warn('Not initialized'); return undefined; }
-    if (ConsentManager.queueIfNeeded('track', [eventName, customData, userData, options])) return undefined;
 
     const eventId = options.event_id ?? generateEventId();
 
@@ -193,12 +190,6 @@ const MetaTracker: MetaTrackerAPI = {
 
   refreshCookies(): void { CookieKeeper.refreshCookies(); },
 
-  // ── Consent ────────────────────────────────────────────────
-
-  hasConsent(): boolean { return ConsentManager.hasConsent(); },
-  grantConsent(): void { ConsentManager.grantConsent(); },
-  revokeConsent(): void { ConsentManager.revokeConsent(); },
-
   // ── Diagnostics ────────────────────────────────────────────
 
   flush(): void { flushQueue(); },
@@ -250,6 +241,6 @@ export type {
   TrackerConfig, TrackerInitOptions, MetaEventName, MetaStandardEvent,
   CustomData, RawUserData, HashedUserData, TrackOptions, TrackingEvent,
   MetaTrackerAPI, PixelConfig, CookieKeeperConfig, AdBlockRecoveryConfig,
-  AdvancedMatchingConfig, BrowserPixelConfig, ConsentConfig, GtmConfig,
+  AdvancedMatchingConfig, BrowserPixelConfig, GtmConfig,
   CaptureSource, MatchQualityResult, DebugInfo,
 } from '@/types/types';
