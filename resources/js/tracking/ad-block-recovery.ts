@@ -1,7 +1,7 @@
 /**
  * Ad Blocker Recovery — detection, disguised endpoints, payload obfuscation.
  */
-import { config, adBlockDetected, setAdBlockDetected, log, VERSION } from '@/types/state';
+import { config, adBlockDetected, setAdBlockDetected, log, VERSION } from '@/tracking/state';
 import type { DisguisedPayload } from '@/types/types';
 
 export const AdBlockRecovery = {

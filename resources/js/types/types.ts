@@ -21,23 +21,31 @@ export interface PixelConfig { pixelId: string; domains: string[]; }
 export interface CookieKeeperConfig { enabled: boolean; refreshInterval: number; maxAge: number; cookieNames: string[]; }
 export interface BrowserPixelConfig { enabled: boolean; autoPageView: boolean; syncEvents: boolean; }
 export interface AdBlockRecoveryConfig { enabled: boolean; proxyPath: string; useBeacon: boolean; useImage: boolean; customEndpoints: string[]; }
-export interface ConsentConfig {
-  enabled: boolean; mode: 'opt-in' | 'opt-out'; consentCategory: string;
-  waitForConsent: boolean; defaultConsent: boolean;
-}
 export interface AdvancedMatchingConfig {
   enabled: boolean; autoCaptureForms: boolean; captureUrlParams: boolean;
   captureDataLayer: boolean; captureMetaTags: boolean; autoIdentifyOnSubmit: boolean;
   formFieldMap: Record<string, MetaPiiField>; dataLayerKey: string; userDataKey: string | null;
 }
 
+export interface GtmConfig {
+  enabled: boolean;
+  /** Auto-map GA4 ecommerce dataLayer events to Meta CAPI events */
+  autoMapEcommerce: boolean;
+  /** Push MetaTracker events back to the dataLayer for other GTM tags */
+  pushToDataLayer: boolean;
+  /** The dataLayer variable name (default: 'dataLayer') */
+  dataLayerKey: string;
+  /** Custom event mapping overrides: dataLayer event name → Meta event name */
+  eventMapping: Record<string, string>;
+}
+
 export interface TrackerConfig {
   endpoint: string; apiKey: string; pixelId: string; pixels: PixelConfig[];
   autoPageView: boolean; debug: boolean; hashPii: boolean;
   respectDnt: boolean; batchEvents: boolean; minMatchQuality: number;
-  browserPixel: BrowserPixelConfig; consent: ConsentConfig;
+  browserPixel: BrowserPixelConfig;
   cookieKeeper: CookieKeeperConfig; adBlockRecovery: AdBlockRecoveryConfig;
-  advancedMatching: AdvancedMatchingConfig;
+  advancedMatching: AdvancedMatchingConfig; gtm: GtmConfig;
 }
 
 export type TrackerInitOptions = Partial<TrackerConfig> &
@@ -94,7 +102,7 @@ export interface MatchQualityResult { score: number; fields: string[]; }
 
 export interface AdvancedMatchingDiagnostics {
   capturedFields: number;
-  fields: Record<string, { source: CaptureSource; hasValue: boolean; isHashed: boolean }>;
+  fields: Record<string, { source: string; hasValue: boolean; isHashed: boolean }>;
   storedIdentity: Record<string, boolean>;
 }
 
@@ -127,16 +135,22 @@ export interface MetaTrackerAPI {
   addPixel(pixelId: string, domains: string | string[]): void;
   removePixel(pixelId: string): void;
   refreshCookies(): void;
-  hasConsent(): boolean;
-  grantConsent(): void;
-  revokeConsent(): void;
   flush(): void;
   isAdBlocked(): boolean;
   getTransport(): string;
   getDebugInfo(): DebugInfo;
   getMatchQuality(extraUserData?: RawUserData): Promise<MatchQualityResult>;
   addUserData(data: RawUserData, source?: CaptureSource): void;
+
+  /** Push a custom event to the GTM dataLayer */
+  pushToDataLayer(event: string, data?: Record<string, unknown>): void;
 }
 
-// Note: Window.MetaTracker is declared in meta-tracker.ts to avoid
-// duplicate declaration conflicts when both files are compiled together.
+declare global {
+  interface Window {
+    MetaTracker: MetaTrackerAPI;
+    MetaTrackerQueue?: Array<[string, ...unknown[]]>;
+    doNotTrack?: string;
+    [key: string]: unknown;
+  }
+}

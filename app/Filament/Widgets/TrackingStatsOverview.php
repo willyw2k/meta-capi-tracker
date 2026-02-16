@@ -29,7 +29,7 @@ class TrackingStatsOverview extends BaseWidget
         $eventsToday = TrackedEvent::whereDate('created_at', $today)->count();
         $eventsYesterday = TrackedEvent::whereDate('created_at', $today->copy()->subDay())->count();
         $eventsTrend = $eventsYesterday > 0
-            ? round((($eventsToday - $eventsYesterday) / $eventsYesterday) * 100)
+            ? round((float) ((($eventsToday - $eventsYesterday) / $eventsYesterday) * 100))
             : 0;
 
         // Events last 7 days sparkline
@@ -42,7 +42,7 @@ class TrackingStatsOverview extends BaseWidget
         $sentLast7 = TrackedEvent::where('created_at', '>=', $last7)
             ->where('status', EventStatus::Sent)
             ->count();
-        $sentRate = $totalLast7 > 0 ? round(($sentLast7 / $totalLast7) * 100, 1) : 0;
+        $sentRate = $totalLast7 > 0 ? round((float) (($sentLast7 / $totalLast7) * 100), 1) : 0;
 
         // Failed / skipped events
         $failedCount = TrackedEvent::where('status', EventStatus::Failed)->count();
@@ -52,18 +52,18 @@ class TrackingStatsOverview extends BaseWidget
             ->count();
 
         // Match quality avg
-        $avgMatchQuality = MatchQualityLog::where('event_date', '>=', $last7)
-            ->avg('score');
-        $prevAvgMatch = MatchQualityLog::whereBetween('event_date', [$prev7, $last7])
-            ->avg('score');
-        $matchTrend = ($prevAvgMatch && $prevAvgMatch > 0)
+        $avgMatchQuality = (float) (MatchQualityLog::where('event_date', '>=', $last7)
+            ->avg('score') ?? 0);
+        $prevAvgMatch = (float) (MatchQualityLog::whereBetween('event_date', [$prev7, $last7])
+            ->avg('score') ?? 0);
+        $matchTrend = $prevAvgMatch > 0
             ? round($avgMatchQuality - $prevAvgMatch, 1)
             : 0;
 
         // Match sparkline
         $matchSparkline = collect(range(6, 0))->map(
             fn (int $i) => (int) round(
-                MatchQualityLog::whereDate('event_date', $today->copy()->subDays($i))->avg('score') ?? 0
+                (float) (MatchQualityLog::whereDate('event_date', $today->copy()->subDays($i))->avg('score') ?? 0)
             )
         )->toArray();
 
@@ -72,10 +72,13 @@ class TrackingStatsOverview extends BaseWidget
         $totalProfiles = UserProfile::count();
 
         // Enrichment rate
-        $enrichedPct = MatchQualityLog::where('event_date', '>=', $last7)->count() > 0
+        $enrichedTotal = MatchQualityLog::where('event_date', '>=', $last7)->count();
+        $enrichedPct = $enrichedTotal > 0
             ? round(
-                (MatchQualityLog::where('event_date', '>=', $last7)->where('was_enriched', true)->count()
-                    / MatchQualityLog::where('event_date', '>=', $last7)->count()) * 100,
+                (float) (
+                    MatchQualityLog::where('event_date', '>=', $last7)->where('was_enriched', true)->count()
+                    / $enrichedTotal
+                ) * 100,
                 1
             )
             : 0;
@@ -93,12 +96,12 @@ class TrackingStatsOverview extends BaseWidget
                 ->descriptionIcon('heroicon-o-paper-airplane')
                 ->color($sentRate >= 95 ? 'success' : ($sentRate >= 80 ? 'warning' : 'danger')),
 
-            Stat::make('Avg Match Quality', round($avgMatchQuality ?? 0) . '/100')
+            Stat::make('Avg Match Quality', round($avgMatchQuality).'/100')
                 ->description($matchTrend >= 0 ? "+{$matchTrend} pts vs prev 7d" : "{$matchTrend} pts vs prev 7d")
                 ->descriptionIcon($matchTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color(match (true) {
-                    ($avgMatchQuality ?? 0) >= 61 => 'success',
-                    ($avgMatchQuality ?? 0) >= 41 => 'warning',
+                    $avgMatchQuality >= 61 => 'success',
+                    $avgMatchQuality >= 41 => 'warning',
                     default => 'danger',
                 })
                 ->chart($matchSparkline)
@@ -112,7 +115,7 @@ class TrackingStatsOverview extends BaseWidget
             Stat::make('Failed / Pending', "{$failedCount} / {$pendingCount}")
                 ->description(
                     ($failedCount > 0 ? 'Attention needed' : 'All clear')
-                    . ($skippedLast7 > 0 ? " ({$skippedLast7} skipped 7d)" : '')
+                    .($skippedLast7 > 0 ? " ({$skippedLast7} skipped 7d)" : '')
                 )
                 ->descriptionIcon($failedCount > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
                 ->color($failedCount > 0 ? 'danger' : 'success'),

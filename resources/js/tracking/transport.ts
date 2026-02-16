@@ -1,12 +1,12 @@
 /**
  * Transport Layer — fetch → beacon → XHR → image fallback chain.
  */
-import { AdBlockRecovery } from '@/types/ad-block-recovery';
+import { AdBlockRecovery } from '@/tracking/ad-block-recovery';
 import {
   config, adBlockDetected, transportMethod, setTransportMethod,
   log, warn, RETRY_DELAYS,
-} from './state';
-import type { TransportDef } from './types';
+} from '@/tracking/state';
+import type { TransportDef } from '@/types/types';
 
 export function resolveEndpoint(path: string): string {
   return adBlockDetected ? AdBlockRecovery.getEndpoint(path) : config.endpoint + path;
