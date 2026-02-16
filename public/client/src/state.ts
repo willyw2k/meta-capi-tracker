@@ -13,7 +13,6 @@ export let config: TrackerConfig = {
   autoPageView: true, debug: false, hashPii: true,
   respectDnt: false, batchEvents: true, minMatchQuality: 60,
   browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
-  consent: { enabled: false, mode: 'opt-in', consentCategory: 'C0004', waitForConsent: true, defaultConsent: false },
   cookieKeeper: { enabled: true, refreshInterval: 86_400_000, maxAge: 180, cookieNames: ['_fbp', '_fbc', '_mt_id'] },
   adBlockRecovery: { enabled: true, proxyPath: '/collect', useBeacon: true, useImage: true, customEndpoints: [] },
   advancedMatching: {
@@ -38,7 +37,6 @@ export let cookieKeeperTimer: ReturnType<typeof setInterval> | null = null;
 export function mergeConfig(opts: Partial<TrackerConfig>): void {
   Object.assign(config, opts, {
     browserPixel: { ...config.browserPixel, ...((opts.browserPixel as object) ?? {}) },
-    consent: { ...config.consent, ...((opts.consent as object) ?? {}) },
     cookieKeeper: { ...config.cookieKeeper, ...((opts.cookieKeeper as object) ?? {}) },
     adBlockRecovery: { ...config.adBlockRecovery, ...((opts.adBlockRecovery as object) ?? {}) },
     advancedMatching: { ...config.advancedMatching, ...((opts.advancedMatching as object) ?? {}) },

@@ -4,9 +4,9 @@ var MAX_QUEUE_SIZE = 50;
 var RETRY_DELAYS = [1e3, 5e3, 15e3];
 var BATCH_INTERVAL = 2e3;
 var config = {
-  endpoint: "https://meta.wakandaslots.com/api/v1/track",
-  apiKey: "77KTyMIdlLOR7HGvyO3Jm02DfFntnka0nYSxWIoiP9YkhVoPLRgy9N6aWZovuyvbm6GdO59tKRHLWAVFq0cWTokaRrwGhnsIZ3le7WD9rIbU5WHbSkhCxjYKc6by23Tk",
-  pixelId: "1515428220005755",
+  endpoint: "",
+  apiKey: "",
+  pixelId: "",
   pixels: [],
   autoPageView: true,
   debug: false,
@@ -14,10 +14,9 @@ var config = {
   respectDnt: false,
   batchEvents: true,
   minMatchQuality: 60,
+  browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
   cookieKeeper: { enabled: true, refreshInterval: 864e5, maxAge: 180, cookieNames: ["_fbp", "_fbc", "_mt_id"] },
   adBlockRecovery: { enabled: true, proxyPath: "/collect", useBeacon: true, useImage: true, customEndpoints: [] },
-  browserPixel: { enabled: false, autoPageView: true, syncEvents: true },
-  consent: { enabled: false, mode: "opt-in", consentCategory: "C0004", waitForConsent: true, defaultConsent: false },
   advancedMatching: {
     enabled: true,
     autoCaptureForms: true,
@@ -28,6 +27,13 @@ var config = {
     formFieldMap: {},
     dataLayerKey: "dataLayer",
     userDataKey: null
+  },
+  gtm: {
+    enabled: false,
+    autoMapEcommerce: true,
+    pushToDataLayer: true,
+    dataLayerKey: "dataLayer",
+    eventMapping: {}
   }
 };
 var queue = [];
@@ -39,10 +45,10 @@ var cookieKeeperTimer = null;
 function mergeConfig(opts) {
   Object.assign(config, opts, {
     browserPixel: { ...config.browserPixel, ...opts.browserPixel ?? {} },
-    consent: { ...config.consent, ...opts.consent ?? {} },
     cookieKeeper: { ...config.cookieKeeper, ...opts.cookieKeeper ?? {} },
     adBlockRecovery: { ...config.adBlockRecovery, ...opts.adBlockRecovery ?? {} },
-    advancedMatching: { ...config.advancedMatching, ...opts.advancedMatching ?? {} }
+    advancedMatching: { ...config.advancedMatching, ...opts.advancedMatching ?? {} },
+    gtm: { ...config.gtm, ...opts.gtm ?? {} }
   });
 }
 function setInitialized(v) {
@@ -991,15 +997,29 @@ var AdvancedMatching = {
 
 // src/browser-pixel.ts
 var STANDARD_EVENTS = [
-  "PageView", "ViewContent", "AddToCart", "AddPaymentInfo",
-  "AddToWishlist", "CompleteRegistration", "Contact", "CustomizeProduct",
-  "Donate", "FindLocation", "InitiateCheckout", "Lead", "Purchase",
-  "Schedule", "Search", "StartTrial", "SubmitApplication", "Subscribe"
+  "PageView",
+  "ViewContent",
+  "AddToCart",
+  "AddPaymentInfo",
+  "AddToWishlist",
+  "CompleteRegistration",
+  "Contact",
+  "CustomizeProduct",
+  "Donate",
+  "FindLocation",
+  "InitiateCheckout",
+  "Lead",
+  "Purchase",
+  "Schedule",
+  "Search",
+  "StartTrial",
+  "SubmitApplication",
+  "Subscribe"
 ];
 var BrowserPixel = {
   _loaded: false,
   init() {
-    if (!config.browserPixel || !config.browserPixel.enabled) return;
+    if (!config.browserPixel.enabled) return;
     if (this._loaded) return;
     if (typeof window.fbq === "function") {
       log("BrowserPixel: fbq already present, initializing pixels");
@@ -1008,7 +1028,7 @@ var BrowserPixel = {
       return;
     }
     log("BrowserPixel: loading fbevents.js");
-    var n = window.fbq = function() {
+    const n = window.fbq = function() {
       n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
     };
     if (!window._fbq) window._fbq = n;
@@ -1016,15 +1036,15 @@ var BrowserPixel = {
     n.loaded = true;
     n.version = "2.0";
     n.queue = [];
-    var script = document.createElement("script");
+    const script = document.createElement("script");
     script.async = true;
     script.src = "https://connect.facebook.net/en_US/fbevents.js";
-    var firstScript = document.getElementsByTagName("script")[0];
+    const firstScript = document.getElementsByTagName("script")[0];
     if (firstScript && firstScript.parentNode) {
       firstScript.parentNode.insertBefore(script, firstScript);
     } else {
-      var insert = function() {
-        var s = document.getElementsByTagName("script")[0];
+      const insert = () => {
+        const s = document.getElementsByTagName("script")[0];
         if (s && s.parentNode) s.parentNode.insertBefore(script, s);
         else document.head.appendChild(script);
       };
@@ -1035,9 +1055,12 @@ var BrowserPixel = {
     this._loaded = true;
   },
   _initPixels() {
-    var pixelIds = PixelRouter.getAllPixelIds();
-    if (!pixelIds.length) { warn("BrowserPixel: no pixel IDs configured"); return; }
-    for (var pid of pixelIds) {
+    const pixelIds = PixelRouter.getAllPixelIds();
+    if (!pixelIds.length) {
+      warn("BrowserPixel: no pixel IDs configured");
+      return;
+    }
+    for (const pid of pixelIds) {
       window.fbq("init", pid);
       log("BrowserPixel: init pixel", pid);
     }
@@ -1046,12 +1069,12 @@ var BrowserPixel = {
       log("BrowserPixel: PageView fired");
     }
   },
-  trackEvent(eventName, eventId, customData) {
-    if (!config.browserPixel || !config.browserPixel.enabled || !config.browserPixel.syncEvents) return;
+  trackEvent(eventName, eventId, customData = {}) {
+    if (!config.browserPixel.enabled || !config.browserPixel.syncEvents) return;
     if (typeof window.fbq !== "function") return;
-    var isStandard = STANDARD_EVENTS.includes(eventName);
-    var fbqParams = { ...customData || {} };
-    var fbqOptions = { eventID: eventId };
+    const isStandard = STANDARD_EVENTS.includes(eventName);
+    const fbqParams = { ...customData };
+    const fbqOptions = { eventID: eventId };
     if (isStandard) {
       window.fbq("track", eventName, fbqParams, fbqOptions);
     } else {
@@ -1061,96 +1084,201 @@ var BrowserPixel = {
   }
 };
 
-// src/consent-manager.ts
-var consentPendingQueue = [];
-var consentGranted2 = null;
-var ConsentManager = {
+// src/gtm.ts
+var GA4_EVENT_MAP = {
+  page_view: "PageView",
+  view_item: "ViewContent",
+  view_item_list: "ViewContent",
+  select_item: "ViewContent",
+  add_to_cart: "AddToCart",
+  add_to_wishlist: "AddToWishlist",
+  begin_checkout: "InitiateCheckout",
+  add_payment_info: "AddPaymentInfo",
+  purchase: "Purchase",
+  refund: "",
+  // skip
+  remove_from_cart: "",
+  // skip
+  sign_up: "CompleteRegistration",
+  generate_lead: "Lead",
+  search: "Search",
+  login: "",
+  // skip — no direct Meta equivalent
+  view_cart: "ViewContent",
+  add_shipping_info: "AddPaymentInfo",
+  select_promotion: "ViewContent"
+};
+function extractCustomData(eventName, ecommerce, dlEntry) {
+  const cd = {};
+  const ecom = ecommerce ?? {};
+  if (ecom.value !== void 0) cd.value = Number(ecom.value);
+  if (ecom.currency) cd.currency = String(ecom.currency);
+  if (ecom.transaction_id) cd.order_id = String(ecom.transaction_id);
+  if (ecom.search_term) cd.search_string = String(ecom.search_term);
+  if (dlEntry.search_term) cd.search_string = String(dlEntry.search_term);
+  if (Array.isArray(ecom.items) && ecom.items.length) {
+    cd.content_ids = ecom.items.map((item) => item.item_id ?? item.item_name ?? "").filter(Boolean);
+    cd.contents = ecom.items.map((item) => ({
+      id: String(item.item_id ?? item.item_name ?? ""),
+      quantity: item.quantity ?? 1,
+      item_price: item.price
+    }));
+    cd.num_items = ecom.items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+    cd.content_type = "product";
+    if (ecom.items[0]?.item_name) cd.content_name = ecom.items[0].item_name;
+    if (ecom.items[0]?.item_category) cd.content_category = ecom.items[0].item_category;
+  }
+  if (cd.value === void 0 && cd.contents?.length) {
+    cd.value = cd.contents.reduce(
+      (sum, c) => sum + (c.item_price ?? 0) * (c.quantity ?? 1),
+      0
+    );
+  }
+  return cd;
+}
+function extractUserData(dlEntry) {
+  const ud = {};
+  const userKeys = ["user", "userData", "user_data", "customer", "visitor", "contact"];
+  for (const key of userKeys) {
+    if (dlEntry[key] && typeof dlEntry[key] === "object") {
+      const obj = dlEntry[key];
+      if (obj.email || obj.em) ud.em = String(obj.email ?? obj.em);
+      if (obj.phone || obj.ph) ud.ph = String(obj.phone ?? obj.ph);
+      if (obj.first_name || obj.fn || obj.firstName) ud.fn = String(obj.first_name ?? obj.fn ?? obj.firstName);
+      if (obj.last_name || obj.ln || obj.lastName) ud.ln = String(obj.last_name ?? obj.ln ?? obj.lastName);
+      if (obj.external_id || obj.user_id || obj.userId) ud.external_id = String(obj.external_id ?? obj.user_id ?? obj.userId);
+      if (obj.city || obj.ct) ud.ct = String(obj.city ?? obj.ct);
+      if (obj.state || obj.st) ud.st = String(obj.state ?? obj.st);
+      if (obj.zip || obj.zp || obj.postal_code) ud.zp = String(obj.zip ?? obj.zp ?? obj.postal_code);
+      if (obj.country || obj.country_code) ud.country = String(obj.country ?? obj.country_code);
+    }
+  }
+  if (dlEntry.user_id) ud.external_id = ud.external_id || String(dlEntry.user_id);
+  if (dlEntry.userId) ud.external_id = ud.external_id || String(dlEntry.userId);
+  return ud;
+}
+var _initialized = false;
+var _originalPush = null;
+var GtmIntegration = {
   init() {
-    if (!config.consent || !config.consent.enabled) { consentGranted2 = true; return; }
-    consentGranted2 = config.consent.mode === "opt-out" ? (config.consent.defaultConsent ?? true) : (config.consent.defaultConsent ?? false);
-    log("ConsentManager: mode=" + config.consent.mode, "default=" + consentGranted2);
-    this._detectCMP();
-  },
-  _detectCMP() {
-    if (typeof window.OneTrust !== "undefined" || typeof window.OptanonWrapper !== "undefined") { this._initOneTrust(); return; }
-    if (typeof window.Cookiebot !== "undefined") { this._initCookiebot(); return; }
-    if (typeof window.truste !== "undefined") { this._initTrustArc(); return; }
-    if (typeof window.Osano !== "undefined") { this._initOsano(); return; }
-    if (typeof window.gtag === "function") { this._initGoogleConsentMode(); return; }
-    if (typeof window.__tcfapi === "function") { this._initTCF(); return; }
-    log("ConsentManager: no CMP detected, using default consent=" + consentGranted2);
-    if (config.consent.waitForConsent) {
-      var recheck = () => {
-        if (typeof window.OneTrust !== "undefined") { this._initOneTrust(); return; }
-        if (typeof window.Cookiebot !== "undefined") { this._initCookiebot(); return; }
-        if (typeof window.truste !== "undefined") { this._initTrustArc(); return; }
-        if (typeof window.Osano !== "undefined") { this._initOsano(); return; }
-        if (typeof window.__tcfapi === "function") { this._initTCF(); return; }
-        log("ConsentManager: no CMP after DOM ready");
+    if (!config.gtm.enabled) return;
+    if (_initialized) return;
+    try {
+      log("GTM: initializing dataLayer bridge");
+      const dlKey = config.gtm.dataLayerKey || "dataLayer";
+      const dl = window[dlKey];
+      if (!Array.isArray(dl)) {
+        window[dlKey] = [];
+        log("GTM: created", dlKey);
+      }
+      const dataLayer = window[dlKey];
+      if (config.gtm.autoMapEcommerce) {
+        for (const entry of dataLayer) {
+          try {
+            this._processEntry(entry);
+          } catch (err) {
+            warn("GTM: error processing existing dataLayer entry", err);
+          }
+        }
+      }
+      _originalPush = dataLayer.push.bind(dataLayer);
+      dataLayer.push = (...args) => {
+        const result = _originalPush(...args);
+        if (config.gtm.autoMapEcommerce) {
+          for (const entry of args) {
+            try {
+              this._processEntry(entry);
+            } catch (err) {
+              warn("GTM: error processing dataLayer push", err);
+            }
+          }
+        }
+        return result;
       };
-      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", recheck);
-      else setTimeout(recheck, 1e3);
+      _initialized = true;
+      log("GTM: dataLayer bridge active");
+    } catch (err) {
+      warn("GTM: failed to initialize dataLayer bridge", err);
     }
   },
-  _initOneTrust() {
-    log("ConsentManager: OneTrust detected");
-    var category = config.consent.consentCategory;
-    var checkConsent = () => { var groups = window.OnetrustActiveGroups || ""; this._updateConsent(groups.includes(category), "OneTrust"); };
-    var origWrapper = window.OptanonWrapper;
-    window.OptanonWrapper = function() { if (typeof origWrapper === "function") origWrapper(); checkConsent(); };
-    if (window.OnetrustActiveGroups) checkConsent();
+  /**
+   * Process a single dataLayer entry and fire the corresponding Meta event.
+   */
+  _processEntry(entry) {
+    if (!entry || typeof entry !== "object") return;
+    const obj = entry;
+    const event = obj.event;
+    if (!event || typeof event !== "string") return;
+    if (event.startsWith("gtm.")) return;
+    if (obj._source === "meta-capi-tracker") return;
+    const metaEvent = this._resolveEventName(event);
+    if (!metaEvent) return;
+    let customData = {};
+    let userData = {};
+    try {
+      const ecommerce = obj.ecommerce;
+      customData = extractCustomData(event, ecommerce, obj);
+      userData = extractUserData(obj);
+    } catch (err) {
+      warn("GTM: error extracting data from dataLayer entry", event, err);
+      return;
+    }
+    log("GTM: mapping", event, "\u2192", metaEvent);
+    if (window.MetaTracker && typeof window.MetaTracker.track === "function") {
+      window.MetaTracker.track(metaEvent, customData, userData).catch((err) => {
+        warn("GTM: failed to track mapped event", metaEvent, err);
+      });
+    }
   },
-  _initCookiebot() {
-    log("ConsentManager: Cookiebot detected");
-    var checkConsent = () => { var cb = window.Cookiebot; if (!cb) return; this._updateConsent(cb.consent?.marketing === true, "Cookiebot"); };
-    window.addEventListener("CookiebotOnAccept", checkConsent);
-    window.addEventListener("CookiebotOnDecline", checkConsent);
-    if (window.Cookiebot?.consented) checkConsent();
+  /**
+   * Resolve a dataLayer event name to a Meta CAPI event name.
+   */
+  _resolveEventName(dlEvent) {
+    const custom = config.gtm.eventMapping[dlEvent];
+    if (custom) return custom;
+    const mapped = GA4_EVENT_MAP[dlEvent];
+    if (mapped !== void 0) return mapped || null;
+    return null;
   },
-  _initTrustArc() {
-    log("ConsentManager: TrustArc detected");
-    var checkConsent = () => { try { var behavior = window.truste?.eu?.bindMap?.prefCookie; this._updateConsent(behavior !== void 0 ? parseInt(behavior, 10) >= 3 : false, "TrustArc"); } catch {} };
-    window.addEventListener("message", (e) => { if (typeof e.data === "string" && e.data.includes("truste.eu.cookie")) setTimeout(checkConsent, 100); });
-    checkConsent();
+  /**
+   * Push an event to the GTM dataLayer.
+   */
+  pushToDataLayer(event, data = {}) {
+    try {
+      const dlKey = config.gtm.dataLayerKey || "dataLayer";
+      const dl = window[dlKey];
+      if (!Array.isArray(dl)) {
+        warn("GTM: dataLayer not found, cannot push event");
+        return;
+      }
+      const pushFn = _originalPush ?? dl.push.bind(dl);
+      pushFn({
+        event,
+        ...data,
+        _source: "meta-capi-tracker"
+      });
+      log("GTM: pushed to dataLayer:", event);
+    } catch (err) {
+      warn("GTM: error pushing to dataLayer", event, err);
+    }
   },
-  _initOsano() {
-    log("ConsentManager: Osano detected");
-    var osano = window.Osano;
-    if (typeof osano?.cm?.addEventListener === "function") { osano.cm.addEventListener("osano-cm-consent-saved", (change) => { this._updateConsent(change.MARKETING === "ACCEPT", "Osano"); }); }
-    if (typeof osano?.cm?.getConsent === "function") { var consent = osano.cm.getConsent(); if (consent.MARKETING) this._updateConsent(consent.MARKETING === "ACCEPT", "Osano"); }
+  /**
+   * Push a MetaTracker event result to the dataLayer for other GTM tags.
+   */
+  notifyDataLayer(eventName, eventId, customData = {}) {
+    if (!config.gtm.enabled || !config.gtm.pushToDataLayer) return;
+    try {
+      this.pushToDataLayer("meta_capi_event", {
+        meta_event_name: eventName,
+        meta_event_id: eventId,
+        meta_custom_data: customData
+      });
+    } catch (err) {
+      warn("GTM: error notifying dataLayer", eventName, err);
+    }
   },
-  _initGoogleConsentMode() {
-    log("ConsentManager: Google Consent Mode detected");
-    var dl = window.dataLayer || [];
-    var origPush = dl.push.bind(dl);
-    dl.push = (...args) => { var r = origPush(...args); for (var entry of args) { if (entry && typeof entry === "object" && entry[0] === "consent" && entry[1] === "update") { var params = entry[2]; if (params?.ad_storage) this._updateConsent(params.ad_storage === "granted", "GoogleConsentMode"); } } return r; };
-    try { var cs = window.google_tag_data?.ics?.entries; if (cs?.ad_storage) this._updateConsent(cs.ad_storage.value === "granted", "GoogleConsentMode"); } catch {}
-  },
-  _initTCF() {
-    log("ConsentManager: IAB TCF v2 detected");
-    var checkTCF = () => { window.__tcfapi("getTCData", 2, (data, success) => { if (!success || !data) return; if (!data.gdprApplies) { this._updateConsent(true, "TCF"); return; } var consents = data.purpose?.consents ?? {}; this._updateConsent(consents[1] === true && consents[4] === true, "TCF"); }); };
-    window.__tcfapi("addEventListener", 2, (_, success) => { if (success) checkTCF(); });
-    checkTCF();
-  },
-  _updateConsent(granted, source) {
-    var prev = consentGranted2;
-    consentGranted2 = granted;
-    if (prev !== granted) log("ConsentManager: consent " + (granted ? "GRANTED" : "REVOKED") + " via " + source);
-    if (granted && consentPendingQueue.length) this._flushPending();
-  },
-  _flushPending() {
-    log("ConsentManager: flushing", consentPendingQueue.length, "queued calls");
-    while (consentPendingQueue.length) { var call = consentPendingQueue.shift(); var fn = MetaTracker[call.method]; if (typeof fn === "function") fn.apply(MetaTracker, call.args); }
-  },
-  hasConsent() { if (!config.consent || !config.consent.enabled) return true; return consentGranted2 === true; },
-  grantConsent() { this._updateConsent(true, "manual"); },
-  revokeConsent() { this._updateConsent(false, "manual"); },
-  queueIfNeeded(method, args) {
-    if (!config.consent || !config.consent.enabled) return false;
-    if (consentGranted2 === true) return false;
-    if (config.consent.waitForConsent) { consentPendingQueue.push({ method, args }); log("ConsentManager: queued", method, "(" + consentPendingQueue.length + " pending)"); return true; }
-    warn("ConsentManager: blocked", method, "(no consent)");
-    return true;
+  isInitialized() {
+    return _initialized;
   }
 };
 
@@ -1197,10 +1325,10 @@ var MetaTracker = {
     mergeConfig(options);
     setInitialized(true);
     log("Initialized v" + VERSION);
-    ConsentManager.init();
     CookieKeeper.init();
     AdvancedMatching.init();
     BrowserPixel.init();
+    GtmIntegration.init();
     if (config.adBlockRecovery.enabled) {
       AdBlockRecovery.detect().then((blocked) => {
         if (blocked) log("Ad blocker recovery: ACTIVE");
@@ -1218,12 +1346,14 @@ var MetaTracker = {
       warn("Not initialized");
       return void 0;
     }
-    if (ConsentManager.queueIfNeeded("track", [eventName, customData, userData, options])) return void 0;
     const eventId = options.event_id ?? generateEventId();
     const enrichedUserData = config.advancedMatching.enabled ? await AdvancedMatching.buildUserData(userData) : await AdvancedMatching.normalizeAndHash(userData);
     const matchScore = AdvancedMatching.scoreMatchQuality(enrichedUserData);
     log(`Match quality: ${matchScore}/100`);
-    if (matchScore < config.minMatchQuality) { warn(`Match quality ${matchScore} below threshold ${config.minMatchQuality}, skipping event`); return void 0; }
+    if (matchScore < config.minMatchQuality) {
+      warn(`Match quality ${matchScore} below threshold ${config.minMatchQuality}, skipping event`);
+      return void 0;
+    }
     const pixelIds = options.pixel_id ? [options.pixel_id] : PixelRouter.resolve();
     if (!pixelIds.length) {
       warn("No pixel for:", window.location.hostname);
@@ -1246,6 +1376,7 @@ var MetaTracker = {
       enqueueEvent(event);
       BrowserPixel.trackEvent(eventName, event.event_id, customData);
     }
+    GtmIntegration.notifyDataLayer(eventName, eventId, customData);
     return eventId;
   },
   // ── Convenience methods ────────────────────────────────────
@@ -1314,10 +1445,6 @@ var MetaTracker = {
   refreshCookies() {
     CookieKeeper.refreshCookies();
   },
-  // ── Consent ──────────────────────────────────────────────
-  hasConsent() { return ConsentManager.hasConsent(); },
-  grantConsent() { ConsentManager.grantConsent(); },
-  revokeConsent() { ConsentManager.revokeConsent(); },
   // ── Diagnostics ────────────────────────────────────────────
   flush() {
     flushQueue();
@@ -1350,6 +1477,10 @@ var MetaTracker = {
   },
   addUserData(data, source = "explicit") {
     AdvancedMatching._mergeCapture(source, data);
+  },
+  // ── GTM Integration ───────────────────────────────────────
+  pushToDataLayer(event, data = {}) {
+    GtmIntegration.pushToDataLayer(event, data);
   }
 };
 window.MetaTracker = MetaTracker;
