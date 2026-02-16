@@ -37,7 +37,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'dedup_window_minutes' => (int) env('TRACKING_DEDUP_WINDOW', 60),
+    'dedup_window_minutes' => (int) env('TRACKING_DEDUP_WINDOW', 2880), // 48 hours
     'max_retries' => (int) env('TRACKING_MAX_RETRIES', 3),
 
     /*

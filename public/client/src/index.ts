@@ -144,6 +144,16 @@ const MetaTracker: MetaTrackerAPI = {
   trackCompleteRegistration(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('CompleteRegistration', cd, ud); },
   trackInitiateCheckout(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('InitiateCheckout', cd, ud); },
   trackSearch(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('Search', cd, ud); },
+  trackAddToWishlist(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('AddToWishlist', cd, ud); },
+  trackAddPaymentInfo(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('AddPaymentInfo', cd, ud); },
+  trackContact(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('Contact', cd, ud); },
+  trackCustomizeProduct(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('CustomizeProduct', cd, ud); },
+  trackDonate(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('Donate', cd, ud); },
+  trackFindLocation(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('FindLocation', cd, ud); },
+  trackSchedule(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('Schedule', cd, ud); },
+  trackStartTrial(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('StartTrial', cd, ud); },
+  trackSubmitApplication(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('SubmitApplication', cd, ud); },
+  trackSubscribe(cd: CustomData = {}, ud: RawUserData = {}) { return this.track('Subscribe', cd, ud); },
   trackToPixel(pixelId: string, name: MetaEventName, cd: CustomData = {}, ud: RawUserData = {}) {
     return this.track(name, cd, ud, { pixel_id: pixelId });
   },

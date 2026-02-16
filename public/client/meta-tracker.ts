@@ -121,6 +121,16 @@ export interface TrackerConfig {
   cookieKeeper: CookieKeeperConfig;
   adBlockRecovery: AdBlockRecoveryConfig;
   advancedMatching: AdvancedMatchingConfig;
+  gtm: GtmConfig;
+}
+
+/** GTM Integration configuration. */
+export interface GtmConfig {
+  enabled: boolean;
+  autoMapEcommerce: boolean;
+  pushToDataLayer: boolean;
+  dataLayerKey: string;
+  eventMapping: Record<string, string>;
 }
 
 /** Options for init – all fields optional except endpoint + apiKey. */
@@ -275,6 +285,13 @@ declare global {
       formFieldMap: {},
       dataLayerKey: 'dataLayer',
       userDataKey: null,
+    },
+    gtm: {
+      enabled: false,
+      autoMapEcommerce: true,
+      pushToDataLayer: true,
+      dataLayerKey: 'dataLayer',
+      eventMapping: {},
     },
   };
 
@@ -1448,6 +1465,151 @@ declare global {
   };
 
   // ══════════════════════════════════════════════════════════════
+  // ── GTM INTEGRATION
+  // ══════════════════════════════════════════════════════════════
+
+  const GA4_EVENT_MAP: Record<string, string> = {
+    page_view: 'PageView', view_item: 'ViewContent', view_item_list: 'ViewContent',
+    select_item: 'ViewContent', add_to_cart: 'AddToCart', add_to_wishlist: 'AddToWishlist',
+    begin_checkout: 'InitiateCheckout', add_payment_info: 'AddPaymentInfo',
+    purchase: 'Purchase', refund: '', remove_from_cart: '',
+    sign_up: 'CompleteRegistration', generate_lead: 'Lead', search: 'Search',
+    login: '', view_cart: 'ViewContent', add_shipping_info: 'AddPaymentInfo',
+    select_promotion: 'ViewContent',
+  };
+
+  let _gtmInitialized = false;
+  let _originalDlPush: ((...args: unknown[]) => number) | null = null;
+
+  const GtmIntegration = {
+    init(): void {
+      if (!config.gtm.enabled || _gtmInitialized) return;
+      try {
+        log('GTM: initializing dataLayer bridge');
+        const dlKey = config.gtm.dataLayerKey || 'dataLayer';
+        if (!Array.isArray((window as any)[dlKey])) {
+          (window as any)[dlKey] = [];
+          log('GTM: created', dlKey);
+        }
+        const dataLayer = (window as any)[dlKey] as unknown[];
+        if (config.gtm.autoMapEcommerce) {
+          for (const entry of dataLayer) {
+            try { this._processEntry(entry); } catch (err) { warn('GTM: error processing existing entry', err); }
+          }
+        }
+        _originalDlPush = dataLayer.push.bind(dataLayer);
+        dataLayer.push = (...args: unknown[]): number => {
+          const result = _originalDlPush!(...args);
+          if (config.gtm.autoMapEcommerce) {
+            for (const entry of args) {
+              try { this._processEntry(entry); } catch (err) { warn('GTM: error processing push', err); }
+            }
+          }
+          return result;
+        };
+        _gtmInitialized = true;
+        log('GTM: dataLayer bridge active');
+      } catch (err) { warn('GTM: failed to initialize', err); }
+    },
+
+    _processEntry(entry: unknown): void {
+      if (!entry || typeof entry !== 'object') return;
+      const obj = entry as Record<string, unknown>;
+      const event = obj.event as string | undefined;
+      if (!event || typeof event !== 'string') return;
+      if (event.startsWith('gtm.') || obj._source === 'meta-capi-tracker') return;
+      const metaEvent = this._resolveEventName(event);
+      if (!metaEvent) return;
+      let customData: Record<string, unknown> = {};
+      let userData: UserDataInput = {};
+      try {
+        const ecom = obj.ecommerce as Record<string, unknown> | undefined;
+        customData = this._extractCustomData(event, ecom, obj);
+        userData = this._extractUserData(obj);
+      } catch (err) { warn('GTM: error extracting data', event, err); return; }
+      log('GTM: mapping', event, '→', metaEvent);
+      if (window.MetaTracker && typeof window.MetaTracker.track === 'function') {
+        window.MetaTracker.track(metaEvent, customData, userData).catch((err: unknown) => {
+          warn('GTM: failed to track mapped event', metaEvent, err);
+        });
+      }
+    },
+
+    _resolveEventName(dlEvent: string): string | null {
+      const custom = config.gtm.eventMapping[dlEvent];
+      if (custom) return custom;
+      const mapped = GA4_EVENT_MAP[dlEvent];
+      if (mapped !== undefined) return mapped || null;
+      return null;
+    },
+
+    _extractCustomData(_eventName: string, ecommerce: Record<string, unknown> | undefined, dlEntry: Record<string, unknown>): Record<string, unknown> {
+      const cd: Record<string, unknown> = {};
+      const ecom = ecommerce ?? {};
+      if (ecom.value !== undefined) cd.value = Number(ecom.value);
+      if (ecom.currency) cd.currency = String(ecom.currency);
+      if (ecom.transaction_id) cd.order_id = String(ecom.transaction_id);
+      if (ecom.search_term) cd.search_string = String(ecom.search_term);
+      if (dlEntry.search_term) cd.search_string = String(dlEntry.search_term);
+      const items = ecom.items as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(items) && items.length) {
+        cd.content_ids = items.map((i) => String(i.item_id ?? i.item_name ?? '')).filter(Boolean);
+        cd.contents = items.map((i) => ({ id: String(i.item_id ?? i.item_name ?? ''), quantity: (i.quantity as number) ?? 1, item_price: i.price as number | undefined }));
+        cd.num_items = items.reduce((sum, i) => sum + ((i.quantity as number) ?? 1), 0);
+        cd.content_type = 'product';
+        if (items[0]?.item_name) cd.content_name = items[0].item_name;
+        if (items[0]?.item_category) cd.content_category = items[0].item_category;
+      }
+      if (cd.value === undefined && Array.isArray(cd.contents)) {
+        cd.value = (cd.contents as Array<{ item_price?: number; quantity?: number }>).reduce(
+          (sum, c) => sum + ((c.item_price ?? 0) * (c.quantity ?? 1)), 0,
+        );
+      }
+      return cd;
+    },
+
+    _extractUserData(dlEntry: Record<string, unknown>): UserDataInput {
+      const ud: Record<string, string> = {};
+      const userKeys = ['user', 'userData', 'user_data', 'customer', 'visitor', 'contact'];
+      for (const key of userKeys) {
+        if (dlEntry[key] && typeof dlEntry[key] === 'object') {
+          const obj = dlEntry[key] as Record<string, unknown>;
+          if (obj.email || obj.em) ud.em = String(obj.email ?? obj.em);
+          if (obj.phone || obj.ph) ud.ph = String(obj.phone ?? obj.ph);
+          if (obj.first_name || obj.fn || obj.firstName) ud.fn = String(obj.first_name ?? obj.fn ?? obj.firstName);
+          if (obj.last_name || obj.ln || obj.lastName) ud.ln = String(obj.last_name ?? obj.ln ?? obj.lastName);
+          if (obj.external_id || obj.user_id || obj.userId) ud.external_id = String(obj.external_id ?? obj.user_id ?? obj.userId);
+          if (obj.city || obj.ct) ud.ct = String(obj.city ?? obj.ct);
+          if (obj.state || obj.st) ud.st = String(obj.state ?? obj.st);
+          if (obj.zip || obj.zp || obj.postal_code) ud.zp = String(obj.zip ?? obj.zp ?? obj.postal_code);
+          if (obj.country || obj.country_code) ud.country = String(obj.country ?? obj.country_code);
+        }
+      }
+      if (dlEntry.user_id) ud.external_id = ud.external_id || String(dlEntry.user_id);
+      if (dlEntry.userId) ud.external_id = ud.external_id || String(dlEntry.userId);
+      return ud as UserDataInput;
+    },
+
+    pushToDataLayer(event: string, data: Record<string, unknown> = {}): void {
+      try {
+        const dlKey = config.gtm.dataLayerKey || 'dataLayer';
+        const dl = (window as any)[dlKey] as unknown[] | undefined;
+        if (!Array.isArray(dl)) { warn('GTM: dataLayer not found'); return; }
+        const pushFn = _originalDlPush ?? dl.push.bind(dl);
+        pushFn({ event, ...data, _source: 'meta-capi-tracker' });
+        log('GTM: pushed to dataLayer:', event);
+      } catch (err) { warn('GTM: error pushing to dataLayer', event, err); }
+    },
+
+    notifyDataLayer(eventName: string, eventId: string | undefined, customData: Record<string, unknown> = {}): void {
+      if (!config.gtm.enabled || !config.gtm.pushToDataLayer) return;
+      try {
+        this.pushToDataLayer('meta_capi_event', { meta_event_name: eventName, meta_event_id: eventId, meta_custom_data: customData });
+      } catch (err) { warn('GTM: error notifying dataLayer', eventName, err); }
+    },
+  };
+
+  // ══════════════════════════════════════════════════════════════
   // ── PUBLIC API
   // ══════════════════════════════════════════════════════════════
 
@@ -1471,6 +1633,7 @@ declare global {
         cookieKeeper: { ...config.cookieKeeper, ...(options.cookieKeeper || {}) },
         adBlockRecovery: { ...config.adBlockRecovery, ...(options.adBlockRecovery || {}) },
         advancedMatching: { ...config.advancedMatching, ...(options.advancedMatching || {}) },
+        gtm: { ...config.gtm, ...(options.gtm || {}) },
       } as TrackerConfig;
 
       initialized = true;
@@ -1479,6 +1642,7 @@ declare global {
       BrowserPixel.init();
       CookieKeeper.init();
       AdvancedMatching.init();
+      GtmIntegration.init();
 
       if (config.adBlockRecovery.enabled) {
         AdBlockRecovery.detect().then(b => { if (b) log('Ad blocker recovery: ACTIVE'); });
@@ -1541,6 +1705,8 @@ declare global {
         BrowserPixel.trackEvent(eventName, event.event_id, customData, pixelId);
       }
 
+      GtmIntegration.notifyDataLayer(eventName, eventId, customData);
+
       return eventId;
     },
 
@@ -1569,6 +1735,36 @@ declare global {
     },
     trackSearch(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
       return this.track('Search', cd, ud);
+    },
+    trackAddToWishlist(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('AddToWishlist', cd, ud);
+    },
+    trackAddPaymentInfo(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('AddPaymentInfo', cd, ud);
+    },
+    trackContact(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('Contact', cd, ud);
+    },
+    trackCustomizeProduct(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('CustomizeProduct', cd, ud);
+    },
+    trackDonate(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('Donate', cd, ud);
+    },
+    trackFindLocation(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('FindLocation', cd, ud);
+    },
+    trackSchedule(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('Schedule', cd, ud);
+    },
+    trackStartTrial(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('StartTrial', cd, ud);
+    },
+    trackSubmitApplication(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('SubmitApplication', cd, ud);
+    },
+    trackSubscribe(cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
+      return this.track('Subscribe', cd, ud);
     },
     trackToPixel(pixelId: string, name: string, cd: Record<string, unknown> = {}, ud: UserDataInput = {}): Promise<string | undefined> {
       return this.track(name, cd, ud, { pixel_id: pixelId });
@@ -1635,6 +1831,12 @@ declare global {
 
     refreshCookies(): void {
       CookieKeeper.refreshCookies();
+    },
+
+    // ── GTM Integration ───────────────────────────────────────
+
+    pushToDataLayer(event: string, data: Record<string, unknown> = {}): void {
+      GtmIntegration.pushToDataLayer(event, data);
     },
 
     // ── Diagnostics ────────────────────────────────────────────
@@ -1704,6 +1906,16 @@ export interface MetaTrackerApi {
   trackCompleteRegistration(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
   trackInitiateCheckout(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
   trackSearch(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackAddToWishlist(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackAddPaymentInfo(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackContact(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackCustomizeProduct(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackDonate(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackFindLocation(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackSchedule(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackStartTrial(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackSubmitApplication(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+  trackSubscribe(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
   trackToPixel(pixelId: string, name: string, customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
 
   // Identity
@@ -1724,4 +1936,7 @@ export interface MetaTrackerApi {
   getDebugInfo(): DebugInfo;
   getMatchQuality(extraUserData?: UserDataInput): Promise<MatchQualityResult>;
   addUserData(data: UserDataInput, source?: string): void;
+
+  // GTM Integration
+  pushToDataLayer(event: string, data?: Record<string, unknown>): void;
 }

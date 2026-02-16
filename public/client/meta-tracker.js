@@ -44,6 +44,13 @@
       formFieldMap: {},
       dataLayerKey: "dataLayer",
       userDataKey: null
+    },
+    gtm: {
+      enabled: false,
+      autoMapEcommerce: true,
+      pushToDataLayer: true,
+      dataLayerKey: "dataLayer",
+      eventMapping: {}
     }
   };
   let queue = [];
@@ -1222,6 +1229,170 @@
       log("BrowserPixel: synced", eventName, "eventID:", eventId);
     }
   };
+  const GA4_EVENT_MAP = {
+    page_view: "PageView",
+    view_item: "ViewContent",
+    view_item_list: "ViewContent",
+    select_item: "ViewContent",
+    add_to_cart: "AddToCart",
+    add_to_wishlist: "AddToWishlist",
+    begin_checkout: "InitiateCheckout",
+    add_payment_info: "AddPaymentInfo",
+    purchase: "Purchase",
+    refund: "",
+    remove_from_cart: "",
+    sign_up: "CompleteRegistration",
+    generate_lead: "Lead",
+    search: "Search",
+    login: "",
+    view_cart: "ViewContent",
+    add_shipping_info: "AddPaymentInfo",
+    select_promotion: "ViewContent"
+  };
+  let _gtmInitialized = false;
+  let _originalDlPush = null;
+  const GtmIntegration = {
+    init() {
+      if (!config.gtm.enabled || _gtmInitialized) return;
+      try {
+        log("GTM: initializing dataLayer bridge");
+        const dlKey = config.gtm.dataLayerKey || "dataLayer";
+        if (!Array.isArray(window2[dlKey])) {
+          window2[dlKey] = [];
+          log("GTM: created", dlKey);
+        }
+        const dataLayer = window2[dlKey];
+        if (config.gtm.autoMapEcommerce) {
+          for (const entry of dataLayer) {
+            try {
+              this._processEntry(entry);
+            } catch (err) {
+              warn("GTM: error processing existing entry", err);
+            }
+          }
+        }
+        _originalDlPush = dataLayer.push.bind(dataLayer);
+        dataLayer.push = (...args) => {
+          const result = _originalDlPush(...args);
+          if (config.gtm.autoMapEcommerce) {
+            for (const entry of args) {
+              try {
+                this._processEntry(entry);
+              } catch (err) {
+                warn("GTM: error processing push", err);
+              }
+            }
+          }
+          return result;
+        };
+        _gtmInitialized = true;
+        log("GTM: dataLayer bridge active");
+      } catch (err) {
+        warn("GTM: failed to initialize", err);
+      }
+    },
+    _processEntry(entry) {
+      if (!entry || typeof entry !== "object") return;
+      const obj = entry;
+      const event = obj.event;
+      if (!event || typeof event !== "string") return;
+      if (event.startsWith("gtm.") || obj._source === "meta-capi-tracker") return;
+      const metaEvent = this._resolveEventName(event);
+      if (!metaEvent) return;
+      let customData = {};
+      let userData = {};
+      try {
+        const ecom = obj.ecommerce;
+        customData = this._extractCustomData(event, ecom, obj);
+        userData = this._extractUserData(obj);
+      } catch (err) {
+        warn("GTM: error extracting data", event, err);
+        return;
+      }
+      log("GTM: mapping", event, "\u2192", metaEvent);
+      if (window2.MetaTracker && typeof window2.MetaTracker.track === "function") {
+        window2.MetaTracker.track(metaEvent, customData, userData).catch((err) => {
+          warn("GTM: failed to track mapped event", metaEvent, err);
+        });
+      }
+    },
+    _resolveEventName(dlEvent) {
+      const custom = config.gtm.eventMapping[dlEvent];
+      if (custom) return custom;
+      const mapped = GA4_EVENT_MAP[dlEvent];
+      if (mapped !== void 0) return mapped || null;
+      return null;
+    },
+    _extractCustomData(_eventName, ecommerce, dlEntry) {
+      const cd = {};
+      const ecom = ecommerce ?? {};
+      if (ecom.value !== void 0) cd.value = Number(ecom.value);
+      if (ecom.currency) cd.currency = String(ecom.currency);
+      if (ecom.transaction_id) cd.order_id = String(ecom.transaction_id);
+      if (ecom.search_term) cd.search_string = String(ecom.search_term);
+      if (dlEntry.search_term) cd.search_string = String(dlEntry.search_term);
+      const items = ecom.items;
+      if (Array.isArray(items) && items.length) {
+        cd.content_ids = items.map((i) => String(i.item_id ?? i.item_name ?? "")).filter(Boolean);
+        cd.contents = items.map((i) => ({ id: String(i.item_id ?? i.item_name ?? ""), quantity: i.quantity ?? 1, item_price: i.price }));
+        cd.num_items = items.reduce((sum, i) => sum + (i.quantity ?? 1), 0);
+        cd.content_type = "product";
+        if (items[0]?.item_name) cd.content_name = items[0].item_name;
+        if (items[0]?.item_category) cd.content_category = items[0].item_category;
+      }
+      if (cd.value === void 0 && Array.isArray(cd.contents)) {
+        cd.value = cd.contents.reduce(
+          (sum, c) => sum + (c.item_price ?? 0) * (c.quantity ?? 1),
+          0
+        );
+      }
+      return cd;
+    },
+    _extractUserData(dlEntry) {
+      const ud = {};
+      const userKeys = ["user", "userData", "user_data", "customer", "visitor", "contact"];
+      for (const key of userKeys) {
+        if (dlEntry[key] && typeof dlEntry[key] === "object") {
+          const obj = dlEntry[key];
+          if (obj.email || obj.em) ud.em = String(obj.email ?? obj.em);
+          if (obj.phone || obj.ph) ud.ph = String(obj.phone ?? obj.ph);
+          if (obj.first_name || obj.fn || obj.firstName) ud.fn = String(obj.first_name ?? obj.fn ?? obj.firstName);
+          if (obj.last_name || obj.ln || obj.lastName) ud.ln = String(obj.last_name ?? obj.ln ?? obj.lastName);
+          if (obj.external_id || obj.user_id || obj.userId) ud.external_id = String(obj.external_id ?? obj.user_id ?? obj.userId);
+          if (obj.city || obj.ct) ud.ct = String(obj.city ?? obj.ct);
+          if (obj.state || obj.st) ud.st = String(obj.state ?? obj.st);
+          if (obj.zip || obj.zp || obj.postal_code) ud.zp = String(obj.zip ?? obj.zp ?? obj.postal_code);
+          if (obj.country || obj.country_code) ud.country = String(obj.country ?? obj.country_code);
+        }
+      }
+      if (dlEntry.user_id) ud.external_id = ud.external_id || String(dlEntry.user_id);
+      if (dlEntry.userId) ud.external_id = ud.external_id || String(dlEntry.userId);
+      return ud;
+    },
+    pushToDataLayer(event, data = {}) {
+      try {
+        const dlKey = config.gtm.dataLayerKey || "dataLayer";
+        const dl = window2[dlKey];
+        if (!Array.isArray(dl)) {
+          warn("GTM: dataLayer not found");
+          return;
+        }
+        const pushFn = _originalDlPush ?? dl.push.bind(dl);
+        pushFn({ event, ...data, _source: "meta-capi-tracker" });
+        log("GTM: pushed to dataLayer:", event);
+      } catch (err) {
+        warn("GTM: error pushing to dataLayer", event, err);
+      }
+    },
+    notifyDataLayer(eventName, eventId, customData = {}) {
+      if (!config.gtm.enabled || !config.gtm.pushToDataLayer) return;
+      try {
+        this.pushToDataLayer("meta_capi_event", { meta_event_name: eventName, meta_event_id: eventId, meta_custom_data: customData });
+      } catch (err) {
+        warn("GTM: error notifying dataLayer", eventName, err);
+      }
+    }
+  };
   const MetaTracker = {
     VERSION,
     async init(options) {
@@ -1244,13 +1415,15 @@
         browserPixel: { ...config.browserPixel, ...options.browserPixel || {} },
         cookieKeeper: { ...config.cookieKeeper, ...options.cookieKeeper || {} },
         adBlockRecovery: { ...config.adBlockRecovery, ...options.adBlockRecovery || {} },
-        advancedMatching: { ...config.advancedMatching, ...options.advancedMatching || {} }
+        advancedMatching: { ...config.advancedMatching, ...options.advancedMatching || {} },
+        gtm: { ...config.gtm, ...options.gtm || {} }
       };
       initialized = true;
       log("Initialized v" + VERSION);
       BrowserPixel.init();
       CookieKeeper.init();
       AdvancedMatching.init();
+      GtmIntegration.init();
       if (config.adBlockRecovery.enabled) {
         AdBlockRecovery.detect().then((b) => {
           if (b) log("Ad blocker recovery: ACTIVE");
@@ -1298,6 +1471,7 @@
         enqueueEvent(event);
         BrowserPixel.trackEvent(eventName, event.event_id, customData, pixelId);
       }
+      GtmIntegration.notifyDataLayer(eventName, eventId, customData);
       return eventId;
     },
     // ── Convenience methods ────────────────────────────────────
@@ -1324,6 +1498,36 @@
     },
     trackSearch(cd = {}, ud = {}) {
       return this.track("Search", cd, ud);
+    },
+    trackAddToWishlist(cd = {}, ud = {}) {
+      return this.track("AddToWishlist", cd, ud);
+    },
+    trackAddPaymentInfo(cd = {}, ud = {}) {
+      return this.track("AddPaymentInfo", cd, ud);
+    },
+    trackContact(cd = {}, ud = {}) {
+      return this.track("Contact", cd, ud);
+    },
+    trackCustomizeProduct(cd = {}, ud = {}) {
+      return this.track("CustomizeProduct", cd, ud);
+    },
+    trackDonate(cd = {}, ud = {}) {
+      return this.track("Donate", cd, ud);
+    },
+    trackFindLocation(cd = {}, ud = {}) {
+      return this.track("FindLocation", cd, ud);
+    },
+    trackSchedule(cd = {}, ud = {}) {
+      return this.track("Schedule", cd, ud);
+    },
+    trackStartTrial(cd = {}, ud = {}) {
+      return this.track("StartTrial", cd, ud);
+    },
+    trackSubmitApplication(cd = {}, ud = {}) {
+      return this.track("SubmitApplication", cd, ud);
+    },
+    trackSubscribe(cd = {}, ud = {}) {
+      return this.track("Subscribe", cd, ud);
     },
     trackToPixel(pixelId, name, cd = {}, ud = {}) {
       return this.track(name, cd, ud, { pixel_id: pixelId });
@@ -1401,6 +1605,10 @@
     // ── Cookie Keeper ──────────────────────────────────────────
     refreshCookies() {
       CookieKeeper.refreshCookies();
+    },
+    // ── GTM Integration ───────────────────────────────────────
+    pushToDataLayer(event, data = {}) {
+      GtmIntegration.pushToDataLayer(event, data);
     },
     // ── Diagnostics ────────────────────────────────────────────
     flush() {

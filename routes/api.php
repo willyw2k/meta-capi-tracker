@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DisguisedTrackController;
 use App\Http\Controllers\Api\MatchQualityController;
 use App\Http\Controllers\Api\PixelGifController;
 use App\Http\Controllers\Api\GtmWebhookController;
+use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\TrackEventController;
 use App\Http\Middleware\HandleTrackingCors;
 use App\Http\Middleware\ValidateTrackingApiKey;
@@ -50,6 +51,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/match-quality', MatchQualityController::class)
                 ->name('tracking.match-quality');
         });
+
+    // Product catalog feed (public - consumed by Meta)
+    Route::get('/catalog/{pixelId}/feed.xml', [ProductCatalogController::class, 'feed'])
+        ->name('tracking.catalog-feed');
+
+    // Product catalog JSON (authenticated)
+    Route::get('/catalog/{pixelId}/products', [ProductCatalogController::class, 'show'])
+        ->middleware([HandleTrackingCors::class, ValidateTrackingApiKey::class])
+        ->name('tracking.catalog-products');
 
     // Health check (no auth)
     Route::get('/health', fn () => response()->json([

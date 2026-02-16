@@ -116,9 +116,9 @@ final class MetaUserData extends Data
     {
         $clone = clone $this;
 
-        // Fill IP from request if not provided
+        // Fill IP from request if not provided (supports IPv4 and IPv6)
         if (empty($clone->client_ip_address)) {
-            $clone->client_ip_address = $request->ip();
+            $clone->client_ip_address = self::resolveClientIp($request);
         }
 
         // Fill User-Agent from request if not provided
@@ -137,6 +137,36 @@ final class MetaUserData extends Data
         }
 
         return $clone;
+    }
+
+    /**
+     * Resolve the real client IP from the request, supporting IPv4 and IPv6.
+     * Checks X-Forwarded-For and X-Real-IP headers for proxy/load-balancer setups,
+     * then falls back to $request->ip().
+     */
+    public static function resolveClientIp(Request $request): ?string
+    {
+        // X-Forwarded-For may contain multiple IPs: client, proxy1, proxy2
+        $forwarded = $request->header('X-Forwarded-For');
+
+        if ($forwarded) {
+            $ips = array_map('trim', explode(',', $forwarded));
+            $clientIp = $ips[0] ?? null;
+
+            if ($clientIp && filter_var($clientIp, FILTER_VALIDATE_IP)) {
+                return $clientIp;
+            }
+        }
+
+        // X-Real-IP (common with Nginx)
+        $realIp = $request->header('X-Real-IP');
+
+        if ($realIp && filter_var($realIp, FILTER_VALIDATE_IP)) {
+            return $realIp;
+        }
+
+        // Fallback to Laravel's built-in (handles REMOTE_ADDR for both IPv4/IPv6)
+        return $request->ip();
     }
 
     /**
