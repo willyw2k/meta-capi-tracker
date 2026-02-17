@@ -111,10 +111,13 @@ final readonly class TrackEventAction
             return;
         }
 
+        $dedupMinutes = (int) config('meta-capi.dedup_window_minutes', 2880);
+
         $exists = TrackedEvent::query()
             ->where('pixel_id', $pixel->id)
             ->forEventId($dto->event_id)
             ->whereIn('status', [EventStatus::Sent, EventStatus::Pending])
+            ->where('created_at', '>=', now()->subMinutes($dedupMinutes))
             ->exists();
 
         if ($exists) {

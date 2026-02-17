@@ -1404,6 +1404,36 @@ var MetaTracker = {
   trackSearch(cd = {}, ud = {}) {
     return this.track("Search", cd, ud);
   },
+  trackAddToWishlist(cd = {}, ud = {}) {
+    return this.track("AddToWishlist", cd, ud);
+  },
+  trackAddPaymentInfo(cd = {}, ud = {}) {
+    return this.track("AddPaymentInfo", cd, ud);
+  },
+  trackContact(cd = {}, ud = {}) {
+    return this.track("Contact", cd, ud);
+  },
+  trackCustomizeProduct(cd = {}, ud = {}) {
+    return this.track("CustomizeProduct", cd, ud);
+  },
+  trackDonate(cd = {}, ud = {}) {
+    return this.track("Donate", cd, ud);
+  },
+  trackFindLocation(cd = {}, ud = {}) {
+    return this.track("FindLocation", cd, ud);
+  },
+  trackSchedule(cd = {}, ud = {}) {
+    return this.track("Schedule", cd, ud);
+  },
+  trackStartTrial(cd = {}, ud = {}) {
+    return this.track("StartTrial", cd, ud);
+  },
+  trackSubmitApplication(cd = {}, ud = {}) {
+    return this.track("SubmitApplication", cd, ud);
+  },
+  trackSubscribe(cd = {}, ud = {}) {
+    return this.track("Subscribe", cd, ud);
+  },
   trackToPixel(pixelId, name, cd = {}, ud = {}) {
     return this.track(name, cd, ud, { pixel_id: pixelId });
   },

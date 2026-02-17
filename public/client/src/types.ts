@@ -129,6 +129,16 @@ export interface MetaTrackerAPI {
   trackCompleteRegistration(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
   trackInitiateCheckout(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
   trackSearch(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackAddToWishlist(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackAddPaymentInfo(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackContact(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackCustomizeProduct(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackDonate(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackFindLocation(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackSchedule(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackStartTrial(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackSubmitApplication(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
+  trackSubscribe(customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
   trackToPixel(pixelId: string, eventName: MetaEventName, customData?: CustomData, userData?: RawUserData): Promise<string | undefined>;
   identify(userData: RawUserData): Promise<void>;
   clearIdentity(): void;

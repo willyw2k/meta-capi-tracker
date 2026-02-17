@@ -95,6 +95,15 @@ export interface TrackerConfig {
     cookieKeeper: CookieKeeperConfig;
     adBlockRecovery: AdBlockRecoveryConfig;
     advancedMatching: AdvancedMatchingConfig;
+    gtm: GtmConfig;
+}
+/** GTM Integration configuration. */
+export interface GtmConfig {
+    enabled: boolean;
+    autoMapEcommerce: boolean;
+    pushToDataLayer: boolean;
+    dataLayerKey: string;
+    eventMapping: Record<string, string>;
 }
 /** Options for init – all fields optional except endpoint + apiKey. */
 export type TrackerInitOptions = Partial<TrackerConfig> & {
@@ -184,6 +193,16 @@ export interface MetaTrackerApi {
     trackCompleteRegistration(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
     trackInitiateCheckout(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
     trackSearch(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackAddToWishlist(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackAddPaymentInfo(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackContact(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackCustomizeProduct(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackDonate(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackFindLocation(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackSchedule(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackStartTrial(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackSubmitApplication(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
+    trackSubscribe(customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
     trackToPixel(pixelId: string, name: string, customData?: Record<string, unknown>, userData?: UserDataInput): Promise<string | undefined>;
     identify(userData?: UserDataInput): Promise<void>;
     clearIdentity(): void;
@@ -196,6 +215,7 @@ export interface MetaTrackerApi {
     getDebugInfo(): DebugInfo;
     getMatchQuality(extraUserData?: UserDataInput): Promise<MatchQualityResult>;
     addUserData(data: UserDataInput, source?: string): void;
+    pushToDataLayer(event: string, data?: Record<string, unknown>): void;
 }
 export {};
 //# sourceMappingURL=meta-tracker.d.ts.map

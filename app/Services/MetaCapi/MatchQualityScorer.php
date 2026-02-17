@@ -88,6 +88,8 @@ final readonly class MatchQualityScorer
 
         return [
             'score' => $score,
+            'emq' => $this->toMetaEmqScale($score),
+            'meets_target' => $this->meetsEmqTarget($score),
             'tier' => $this->scoreTier($score),
             'fields_present' => $fieldsPresent,
             'fields_missing' => $fieldsMissing,
@@ -110,6 +112,37 @@ final readonly class MatchQualityScorer
         }
 
         return min($score, 100);
+    }
+
+    /**
+     * Convert internal 0-100 score to Meta's EMQ 1-10 scale.
+     *
+     * Meta Events Manager shows Event Match Quality (EMQ) on a 1-10 scale.
+     * Target: 8-10 for optimal ad delivery and attribution.
+     *
+     * Mapping:
+     *   Internal 0-10   → EMQ 1 (poor)
+     *   Internal 11-20  → EMQ 2
+     *   Internal 21-30  → EMQ 3
+     *   Internal 31-40  → EMQ 4
+     *   Internal 41-50  → EMQ 5
+     *   Internal 51-60  → EMQ 6
+     *   Internal 61-70  → EMQ 7
+     *   Internal 71-80  → EMQ 8 (good — target minimum)
+     *   Internal 81-90  → EMQ 9
+     *   Internal 91-100 → EMQ 10 (excellent)
+     */
+    public function toMetaEmqScale(int $internalScore): int
+    {
+        return max(1, min(10, (int) ceil($internalScore / 10)));
+    }
+
+    /**
+     * Check if the internal score meets the target EMQ of 8-10.
+     */
+    public function meetsEmqTarget(int $internalScore, int $targetEmq = 8): bool
+    {
+        return $this->toMetaEmqScale($internalScore) >= $targetEmq;
     }
 
     /**
