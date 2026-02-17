@@ -72,6 +72,18 @@ class PixelsTable
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('test_event_code')),
             ])
             ->recordActions([
+                Actions\Action::make('generate_script')
+                    ->label('Get Script')
+                    ->icon('heroicon-o-code-bracket')
+                    ->color('info')
+                    ->modalHeading('Client Tracking Script')
+                    ->modalDescription('Copy this script and paste it into your website.')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(fn (Pixel $record) => view('filament.modals.client-script', [
+                        'pixel' => $record,
+                    ])),
+
                 Actions\ActionGroup::make([
                     Actions\EditAction::make(),
                     Actions\Action::make('toggle_active')
